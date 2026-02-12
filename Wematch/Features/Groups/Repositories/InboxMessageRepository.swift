@@ -9,7 +9,7 @@ final class CloudKitInboxMessageRepository: InboxMessageRepository {
 
     private let database: CKDatabase
 
-    init(database: CKDatabase = CloudKitManager.shared.container.publicCloudDatabase) {
+    init(database: CKDatabase = CloudKitManager.shared.publicDatabase) {
         self.database = database
     }
 
@@ -23,6 +23,6 @@ final class CloudKitInboxMessageRepository: InboxMessageRepository {
         record["isRead"] = 0 as CKRecordValue
         record["createdAt"] = Date() as CKRecordValue
         try await database.save(record)
-        Log.groups.info("Created inbox message type=\(type.rawValue) for user \(recipientID)")
+        Log.inbox.info("Created inbox message type=\(type.rawValue) for user \(recipientID)")
     }
 }

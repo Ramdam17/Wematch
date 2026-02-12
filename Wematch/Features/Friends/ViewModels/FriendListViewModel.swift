@@ -23,13 +23,13 @@ final class FriendListViewModel {
     private let inboxRepository: any InboxMessageRepository
     private let authManager: AuthenticationManager
 
-    init(repository: any FriendRepository = CloudKitFriendRepository(),
-         profileRepository: any UserProfileRepository = CloudKitUserProfileRepository(),
-         inboxRepository: any InboxMessageRepository = CloudKitInboxMessageRepository(),
+    init(repository: (any FriendRepository)? = nil,
+         profileRepository: (any UserProfileRepository)? = nil,
+         inboxRepository: (any InboxMessageRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.repository = repository
-        self.profileRepository = profileRepository
-        self.inboxRepository = inboxRepository
+        self.repository = repository ?? CloudKitFriendRepository()
+        self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
+        self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
         self.authManager = authManager
     }
 

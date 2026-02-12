@@ -5,7 +5,7 @@ final class CloudKitFriendRepository: FriendRepository {
 
     private let database: CKDatabase
 
-    init(database: CKDatabase = CloudKitManager.shared.container.publicCloudDatabase) {
+    init(database: CKDatabase = CloudKitManager.shared.publicDatabase) {
         self.database = database
     }
 
@@ -94,9 +94,7 @@ final class CloudKitFriendRepository: FriendRepository {
         let friendshipRecord = Self.friendshipRecord(from: friendship)
 
         // Save both atomically
-        let operation = CKModifyRecordsOperation(recordsToSave: [requestRecord, friendshipRecord])
-        operation.savePolicy = .changedKeys
-        try await database.add(operation)
+        _ = try await database.modifyRecords(saving: [requestRecord, friendshipRecord], deleting: [], savePolicy: .changedKeys)
 
         Log.friends.info("Accepted friend request from \(request.senderUsername) — friendship created")
         return friendship

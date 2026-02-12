@@ -29,11 +29,11 @@ final class UserSearchViewModel {
     private let inboxRepository: any InboxMessageRepository
     private let authManager: AuthenticationManager
 
-    init(repository: any FriendRepository = CloudKitFriendRepository(),
-         inboxRepository: any InboxMessageRepository = CloudKitInboxMessageRepository(),
+    init(repository: (any FriendRepository)? = nil,
+         inboxRepository: (any InboxMessageRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.repository = repository
-        self.inboxRepository = inboxRepository
+        self.repository = repository ?? CloudKitFriendRepository()
+        self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
         self.authManager = authManager
     }
 

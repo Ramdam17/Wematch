@@ -33,12 +33,12 @@ final class AuthenticationManager {
 
     // MARK: - Init
 
-    init(repository: any UserProfileRepository = CloudKitUserProfileRepository(),
-         coordinator: SignInWithAppleCoordinator = SignInWithAppleCoordinator(),
-         usernameGenerator: UsernameGenerator = UsernameGenerator()) {
-        self.repository = repository
-        self.coordinator = coordinator
-        self.usernameGenerator = usernameGenerator
+    init(repository: (any UserProfileRepository)? = nil,
+         coordinator: SignInWithAppleCoordinator? = nil,
+         usernameGenerator: UsernameGenerator? = nil) {
+        self.repository = repository ?? CloudKitUserProfileRepository()
+        self.coordinator = coordinator ?? SignInWithAppleCoordinator()
+        self.usernameGenerator = usernameGenerator ?? UsernameGenerator()
     }
 
     // MARK: - Session Restoration

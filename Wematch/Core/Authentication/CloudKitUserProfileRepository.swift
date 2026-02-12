@@ -5,7 +5,7 @@ final class CloudKitUserProfileRepository: UserProfileRepository {
 
     private let database: CKDatabase
 
-    init(database: CKDatabase = CloudKitManager.shared.container.publicCloudDatabase) {
+    init(database: CKDatabase = CloudKitManager.shared.publicDatabase) {
         self.database = database
     }
 

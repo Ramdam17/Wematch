@@ -5,7 +5,7 @@ final class CloudKitGroupRepository: GroupRepository {
 
     private let database: CKDatabase
 
-    init(database: CKDatabase = CloudKitManager.shared.container.publicCloudDatabase) {
+    init(database: CKDatabase = CloudKitManager.shared.publicDatabase) {
         self.database = database
     }
 
@@ -64,7 +64,7 @@ final class CloudKitGroupRepository: GroupRepository {
         let query = CKQuery(recordType: "JoinRequest", predicate: predicate)
         let (results, _) = try await database.records(matching: query)
         for (id, _) in results {
-            try? await database.deleteRecord(withID: id)
+            try await database.deleteRecord(withID: id)
         }
 
         Log.groups.info("Deleted group \(groupID) and its join requests")
@@ -180,9 +180,7 @@ final class CloudKitGroupRepository: GroupRepository {
         groupRecord["memberIDs"] = memberIDs as CKRecordValue
 
         // Save both records
-        let operation = CKModifyRecordsOperation(recordsToSave: [requestRecord, groupRecord])
-        operation.savePolicy = .changedKeys
-        try await database.add(operation)
+        _ = try await database.modifyRecords(saving: [requestRecord, groupRecord], deleting: [], savePolicy: .changedKeys)
 
         Log.groups.info("Accepted join request \(requestID) — user \(userID) added to group \(groupID)")
     }
