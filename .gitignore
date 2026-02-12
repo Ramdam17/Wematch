@@ -1,0 +1,19 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# SPM
+.build/
+.swiftpm/
+
+# Firebase
+GoogleService-Info.plist
+
+# Serena
+.serena/cache/

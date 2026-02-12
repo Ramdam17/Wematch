@@ -6,20 +6,131 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A59A726E2F3D86B100EED109 /* WematchWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A59A72802F3D86ED00EED109 /* WematchShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; };
+		A59A72812F3D86ED00EED109 /* WematchShared.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A59A72872F3D875500EED109 /* WematchShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; };
+		A59A72882F3D875500EED109 /* WematchShared.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A59A728F2F3D887000EED109 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = A59A728E2F3D887000EED109 /* FirebaseDatabase */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A59A726C2F3D86B100EED109 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A59A72632F3D86B100EED109;
+			remoteInfo = "WematchWatch Watch App";
+		};
+		A59A727E2F3D86ED00EED109 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A59A72772F3D86ED00EED109;
+			remoteInfo = WematchShared;
+		};
+		A59A72892F3D875500EED109 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A59A72772F3D86ED00EED109;
+			remoteInfo = WematchShared;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A59A72722F3D86B100EED109 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				A59A726E2F3D86B100EED109 /* WematchWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A72852F3D86ED00EED109 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A59A72812F3D86ED00EED109 /* WematchShared.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A728B2F3D875500EED109 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A59A72882F3D875500EED109 /* WematchShared.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		A59A71E22F3D725D00EED109 /* Wematch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wematch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WematchWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A59A72782F3D86ED00EED109 /* WematchShared.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WematchShared.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A59A71F22F3D72F000EED109 /* Exceptions for "Wematch" folder in "Wematch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A59A71E12F3D725D00EED109 /* Wematch */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A59A71E42F3D725D00EED109 /* Wematch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A59A71F22F3D72F000EED109 /* Exceptions for "Wematch" folder in "Wematch" target */,
+			);
 			path = Wematch;
+			sourceTree = "<group>";
+		};
+		A59A72652F3D86B100EED109 /* WematchWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "WematchWatch Watch App";
+			sourceTree = "<group>";
+		};
+		A59A72792F3D86ED00EED109 /* WematchShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WematchShared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A59A71DF2F3D725D00EED109 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A59A728F2F3D887000EED109 /* FirebaseDatabase in Frameworks */,
+				A59A72872F3D875500EED109 /* WematchShared.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A72612F3D86B100EED109 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A59A72802F3D86ED00EED109 /* WematchShared.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A72752F3D86ED00EED109 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +144,9 @@
 			isa = PBXGroup;
 			children = (
 				A59A71E42F3D725D00EED109 /* Wematch */,
+				A59A72652F3D86B100EED109 /* WematchWatch Watch App */,
+				A59A72792F3D86ED00EED109 /* WematchShared */,
+				A59A72862F3D875500EED109 /* Frameworks */,
 				A59A71E32F3D725D00EED109 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,11 +155,30 @@
 			isa = PBXGroup;
 			children = (
 				A59A71E22F3D725D00EED109 /* Wematch.app */,
+				A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */,
+				A59A72782F3D86ED00EED109 /* WematchShared.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A59A72862F3D875500EED109 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		A59A72732F3D86ED00EED109 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
 		A59A71E12F3D725D00EED109 /* Wematch */ = {
@@ -55,20 +188,72 @@
 				A59A71DE2F3D725D00EED109 /* Sources */,
 				A59A71DF2F3D725D00EED109 /* Frameworks */,
 				A59A71E02F3D725D00EED109 /* Resources */,
+				A59A72722F3D86B100EED109 /* Embed Watch Content */,
+				A59A728B2F3D875500EED109 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A59A726D2F3D86B100EED109 /* PBXTargetDependency */,
+				A59A728A2F3D875500EED109 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A59A71E42F3D725D00EED109 /* Wematch */,
 			);
 			name = Wematch;
 			packageProductDependencies = (
+				A59A728E2F3D887000EED109 /* FirebaseDatabase */,
 			);
 			productName = Wematch;
 			productReference = A59A71E22F3D725D00EED109 /* Wematch.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A59A72632F3D86B100EED109 /* WematchWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A59A726F2F3D86B100EED109 /* Build configuration list for PBXNativeTarget "WematchWatch Watch App" */;
+			buildPhases = (
+				A59A72602F3D86B100EED109 /* Sources */,
+				A59A72612F3D86B100EED109 /* Frameworks */,
+				A59A72622F3D86B100EED109 /* Resources */,
+				A59A72852F3D86ED00EED109 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A59A727F2F3D86ED00EED109 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A59A72652F3D86B100EED109 /* WematchWatch Watch App */,
+			);
+			name = "WematchWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "WematchWatch Watch App";
+			productReference = A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A59A72772F3D86ED00EED109 /* WematchShared */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A59A72822F3D86ED00EED109 /* Build configuration list for PBXNativeTarget "WematchShared" */;
+			buildPhases = (
+				A59A72732F3D86ED00EED109 /* Headers */,
+				A59A72742F3D86ED00EED109 /* Sources */,
+				A59A72752F3D86ED00EED109 /* Frameworks */,
+				A59A72762F3D86ED00EED109 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A59A72792F3D86ED00EED109 /* WematchShared */,
+			);
+			name = WematchShared;
+			packageProductDependencies = (
+			);
+			productName = WematchShared;
+			productReference = A59A72782F3D86ED00EED109 /* WematchShared.framework */;
+			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
 
@@ -83,6 +268,12 @@
 					A59A71E12F3D725D00EED109 = {
 						CreatedOnToolsVersion = 26.2;
 					};
+					A59A72632F3D86B100EED109 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					A59A72772F3D86ED00EED109 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 				};
 			};
 			buildConfigurationList = A59A71DD2F3D725D00EED109 /* Build configuration list for PBXProject "Wematch" */;
@@ -94,18 +285,37 @@
 			);
 			mainGroup = A59A71D92F3D725D00EED109;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A59A728D2F3D887000EED109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A59A71E32F3D725D00EED109 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				A59A71E12F3D725D00EED109 /* Wematch */,
+				A59A72632F3D86B100EED109 /* WematchWatch Watch App */,
+				A59A72772F3D86ED00EED109 /* WematchShared */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A59A71E02F3D725D00EED109 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A72622F3D86B100EED109 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A72762F3D86ED00EED109 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +332,39 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A59A72602F3D86B100EED109 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A59A72742F3D86ED00EED109 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A59A726D2F3D86B100EED109 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A59A72632F3D86B100EED109 /* WematchWatch Watch App */;
+			targetProxy = A59A726C2F3D86B100EED109 /* PBXContainerItemProxy */;
+		};
+		A59A727F2F3D86ED00EED109 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A59A72772F3D86ED00EED109 /* WematchShared */;
+			targetProxy = A59A727E2F3D86ED00EED109 /* PBXContainerItemProxy */;
+		};
+		A59A728A2F3D875500EED109 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A59A72772F3D86ED00EED109 /* WematchShared */;
+			targetProxy = A59A72892F3D875500EED109 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A59A71EB2F3D725E00EED109 /* Debug */ = {
@@ -251,16 +493,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Wematch/Wematch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TFK566BG76;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Wematch/Info.plist;
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We need to fetch heartrate from the Apple Watch to compute heartrate synchrony";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -283,16 +527,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Wematch/Wematch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TFK566BG76;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Wematch/Info.plist;
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We need to fetch heartrate from the Apple Watch to compute heartrate synchrony";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -307,6 +553,154 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A59A72702F3D86B100EED109 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "WematchWatch Watch App/WematchWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TFK566BG76;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = WematchWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.remyramadour.Wematch;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.remyramadour.Wematch.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		A59A72712F3D86B100EED109 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "WematchWatch Watch App/WematchWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TFK566BG76;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = WematchWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.remyramadour.Wematch;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.remyramadour.Wematch.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		A59A72832F3D86ED00EED109 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TFK566BG76;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.remyramadour.WematchShared;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_MODULE = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		A59A72842F3D86ED00EED109 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TFK566BG76;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.remyramadour.WematchShared;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_MODULE = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
 		};
@@ -331,7 +725,44 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A59A726F2F3D86B100EED109 /* Build configuration list for PBXNativeTarget "WematchWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A59A72702F3D86B100EED109 /* Debug */,
+				A59A72712F3D86B100EED109 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A59A72822F3D86ED00EED109 /* Build configuration list for PBXNativeTarget "WematchShared" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A59A72832F3D86ED00EED109 /* Debug */,
+				A59A72842F3D86ED00EED109 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A59A728D2F3D887000EED109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A59A728E2F3D887000EED109 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A59A728D2F3D887000EED109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A59A71DA2F3D725D00EED109 /* Project object */;
 }
