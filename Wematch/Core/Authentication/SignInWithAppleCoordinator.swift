@@ -82,7 +82,7 @@ extension SignInWithAppleCoordinator: ASAuthorizationControllerPresentationConte
             .compactMap({ $0 as? UIWindowScene })
             .first,
               let window = scene.windows.first else {
-            return ASPresentationAnchor()
+            fatalError("No window scene available for sign-in presentation")
         }
         return window
     }

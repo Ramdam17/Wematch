@@ -16,9 +16,9 @@ final class GroupListViewModel {
     private let repository: any GroupRepository
     private let authManager: AuthenticationManager
 
-    init(repository: any GroupRepository = CloudKitGroupRepository(),
+    init(repository: (any GroupRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.repository = repository
+        self.repository = repository ?? CloudKitGroupRepository()
         self.authManager = authManager
     }
 

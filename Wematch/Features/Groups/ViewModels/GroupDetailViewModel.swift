@@ -26,14 +26,14 @@ final class GroupDetailViewModel {
     private let authManager: AuthenticationManager
 
     init(group: Group,
-         repository: any GroupRepository = CloudKitGroupRepository(),
-         profileRepository: any UserProfileRepository = CloudKitUserProfileRepository(),
-         inboxRepository: any InboxMessageRepository = CloudKitInboxMessageRepository(),
+         repository: (any GroupRepository)? = nil,
+         profileRepository: (any UserProfileRepository)? = nil,
+         inboxRepository: (any InboxMessageRepository)? = nil,
          authManager: AuthenticationManager) {
         self.group = group
-        self.repository = repository
-        self.profileRepository = profileRepository
-        self.inboxRepository = inboxRepository
+        self.repository = repository ?? CloudKitGroupRepository()
+        self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
+        self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
         self.authManager = authManager
     }
 

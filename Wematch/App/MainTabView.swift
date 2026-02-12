@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .rooms
+    @State private var inboxUnreadCount = 0
 
     enum AppTab: String {
         case rooms, groups, friends, inbox
@@ -29,9 +30,10 @@ struct MainTabView: View {
 
             Tab("Inbox", systemImage: "envelope.fill", value: .inbox) {
                 NavigationStack {
-                    InboxPlaceholderView()
+                    InboxListView(unreadCount: $inboxUnreadCount)
                 }
             }
+            .badge(inboxUnreadCount)
         }
     }
 }
