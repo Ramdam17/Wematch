@@ -17,7 +17,7 @@ struct MainTabView: View {
 
             Tab("Groups", systemImage: "person.3.fill", value: .groups) {
                 NavigationStack {
-                    GroupsPlaceholderView()
+                    GroupListView()
                 }
             }
 

@@ -21,13 +21,6 @@
 			remoteGlobalIDString = A59A72632F3D86B100EED109;
 			remoteInfo = "WematchWatch Watch App";
 		};
-		A59A727E2F3D86ED00EED109 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A59A72772F3D86ED00EED109;
-			remoteInfo = WematchShared;
-		};
 		A59A72892F3D875500EED109 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
@@ -348,11 +341,6 @@
 			isa = PBXTargetDependency;
 			target = A59A72632F3D86B100EED109 /* WematchWatch Watch App */;
 			targetProxy = A59A726C2F3D86B100EED109 /* PBXContainerItemProxy */;
-		};
-		A59A727F2F3D86ED00EED109 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A59A72772F3D86ED00EED109 /* WematchShared */;
-			targetProxy = A59A727E2F3D86ED00EED109 /* PBXContainerItemProxy */;
 		};
 		A59A728A2F3D875500EED109 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

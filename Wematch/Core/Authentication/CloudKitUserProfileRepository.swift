@@ -30,10 +30,16 @@ final class CloudKitUserProfileRepository: UserProfileRepository {
     func isUsernameAvailable(_ username: String) async throws -> Bool {
         let predicate = NSPredicate(format: "username == %@", username)
         let query = CKQuery(recordType: "UserProfile", predicate: predicate)
-        let (results, _) = try await database.records(matching: query, resultsLimit: 1)
-        let isAvailable = results.isEmpty
-        Log.cloudKit.debug("Username '\(username)' available: \(isAvailable)")
-        return isAvailable
+        do {
+            let (results, _) = try await database.records(matching: query, resultsLimit: 1)
+            let isAvailable = results.isEmpty
+            Log.cloudKit.debug("Username '\(username)' available: \(isAvailable)")
+            return isAvailable
+        } catch let error as CKError where error.code == .unknownItem {
+            // Record type doesn't exist yet in schema — no profiles exist, so username is available
+            Log.cloudKit.debug("UserProfile record type not yet in schema — username '\(username)' available")
+            return true
+        }
     }
 
     // MARK: - Record Conversion
