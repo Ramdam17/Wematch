@@ -15,6 +15,12 @@ final class FirebaseManager: @unchecked Sendable {
             Log.firebase.info("Firebase already configured")
             return
         }
+
+        guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else {
+            Log.firebase.warning("GoogleService-Info.plist not found — Firebase disabled")
+            return
+        }
+
         FirebaseApp.configure()
         database = Database.database()
         Log.firebase.info("Firebase configured successfully")
