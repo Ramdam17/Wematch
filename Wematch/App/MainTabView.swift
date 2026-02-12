@@ -23,7 +23,7 @@ struct MainTabView: View {
 
             Tab("Friends", systemImage: "person.2.fill", value: .friends) {
                 NavigationStack {
-                    FriendsPlaceholderView()
+                    FriendListView()
                 }
             }
 

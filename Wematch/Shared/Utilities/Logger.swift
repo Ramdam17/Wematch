@@ -8,6 +8,7 @@ enum Log {
     static let healthKit = Logger(subsystem: "com.remyramadour.Wematch", category: "healthkit")
     static let watchConnectivity = Logger(subsystem: "com.remyramadour.Wematch", category: "watchconnectivity")
     static let sync = Logger(subsystem: "com.remyramadour.Wematch", category: "sync")
+    static let friends = Logger(subsystem: "com.remyramadour.Wematch", category: "friends")
     static let groups = Logger(subsystem: "com.remyramadour.Wematch", category: "groups")
     static let rooms = Logger(subsystem: "com.remyramadour.Wematch", category: "rooms")
     static let featureFlags = Logger(subsystem: "com.remyramadour.Wematch", category: "featureflags")
