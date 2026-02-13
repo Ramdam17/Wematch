@@ -38,15 +38,17 @@ enum WematchTheme {
 
     // MARK: - Heart Palette (20+ distinct colors)
 
-    static let heartColors: [Color] = [
-        Color(hex: "FF6B9D"), Color(hex: "C084FC"), Color(hex: "67E8F9"),
-        Color(hex: "F472B6"), Color(hex: "A78BFA"), Color(hex: "34D399"),
-        Color(hex: "FBBF24"), Color(hex: "FB923C"), Color(hex: "F87171"),
-        Color(hex: "818CF8"), Color(hex: "6EE7B7"), Color(hex: "FDE68A"),
-        Color(hex: "93C5FD"), Color(hex: "FCA5A5"), Color(hex: "86EFAC"),
-        Color(hex: "FDA4AF"), Color(hex: "D8B4FE"), Color(hex: "5EEAD4"),
-        Color(hex: "FCD34D"), Color(hex: "A5B4FC"),
+    static let heartColorHexes: [String] = [
+        "FF6B9D", "C084FC", "67E8F9",
+        "F472B6", "A78BFA", "34D399",
+        "FBBF24", "FB923C", "F87171",
+        "818CF8", "6EE7B7", "FDE68A",
+        "93C5FD", "FCA5A5", "86EFAC",
+        "FDA4AF", "D8B4FE", "5EEAD4",
+        "FCD34D", "A5B4FC",
     ]
+
+    static let heartColors: [Color] = heartColorHexes.map { Color(hex: $0) }
 
     // MARK: - Spacing
 

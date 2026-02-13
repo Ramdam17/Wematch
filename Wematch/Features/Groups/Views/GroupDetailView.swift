@@ -4,8 +4,11 @@ struct GroupDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: GroupDetailViewModel
     @State private var showDeleteConfirmation = false
+    @State private var navigateToRoom = false
+    private let authManager: AuthenticationManager
 
     init(group: Group, authManager: AuthenticationManager) {
+        self.authManager = authManager
         self._viewModel = State(
             initialValue: GroupDetailViewModel(group: group, authManager: authManager)
         )
@@ -24,6 +27,7 @@ struct GroupDetailView: View {
                         requestsSection
                     }
 
+                    enterRoomSection
                     actionsSection
                 }
                 .padding()
@@ -159,6 +163,28 @@ struct GroupDetailView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Enter Room
+
+    private var enterRoomSection: some View {
+        NavigationLink(destination: RoomView(
+            roomID: viewModel.group.id,
+            roomName: viewModel.group.name,
+            authManager: authManager
+        )) {
+            HStack(spacing: 8) {
+                Image(systemName: "heart.circle.fill")
+                Text("Enter Room")
+            }
+            .font(WematchTypography.headline)
+            .foregroundStyle(WematchTheme.textOnColor)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .padding(.horizontal, WematchTheme.paddingLarge)
+            .background(WematchTheme.primaryGradient)
+            .clipShape(Capsule())
         }
     }
 

@@ -12,7 +12,7 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             Tab("Rooms", systemImage: "heart.circle.fill", value: .rooms) {
                 NavigationStack {
-                    RoomsPlaceholderView()
+                    RoomListView()
                 }
             }
 
