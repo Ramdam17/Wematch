@@ -58,13 +58,25 @@ final class UserSearchViewModel {
 
     // MARK: - Search
 
-    func search() async {
-        guard let userID = authManager.currentUserID else { return }
+    private var searchTask: Task<Void, Never>?
+
+    func search() {
+        searchTask?.cancel()
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
             results = []
             return
         }
+
+        searchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await performSearch(query: query)
+        }
+    }
+
+    private func performSearch(query: String) async {
+        guard let userID = authManager.currentUserID else { return }
 
         isSearching = true
         defer { isSearching = false }
@@ -72,6 +84,7 @@ final class UserSearchViewModel {
         do {
             results = try await repository.searchUsers(query: query, excludingUserID: userID)
         } catch {
+            guard !Task.isCancelled else { return }
             self.error = error
             Log.friends.error("Search failed: \(error.localizedDescription)")
         }

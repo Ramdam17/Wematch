@@ -14,7 +14,7 @@ struct JoinGroupSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AnimatedBackground()
+                WematchTheme.backgroundGradient.ignoresSafeArea()
 
                 VStack(spacing: WematchTheme.paddingLarge) {
                     Spacer()

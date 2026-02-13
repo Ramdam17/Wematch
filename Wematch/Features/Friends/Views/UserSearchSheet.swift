@@ -11,7 +11,7 @@ struct UserSearchSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AnimatedBackground()
+                WematchTheme.backgroundGradient.ignoresSafeArea()
 
                 if viewModel.searchText.isEmpty {
                     promptView
