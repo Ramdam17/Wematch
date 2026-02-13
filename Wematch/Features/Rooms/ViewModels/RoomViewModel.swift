@@ -26,10 +26,21 @@ final class RoomViewModel {
     private let watchService: any WatchConnectivityServiceProtocol
     private let authManager: AuthenticationManager
 
+    // MARK: - Simulated Participants (plot testing)
+
+    private(set) var simulatedParticipants: [RoomParticipant] = []
+
     // MARK: - Tasks
 
     private var observeTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
+    private var simulationTask: Task<Void, Never>?
+
+    // MARK: - Simulated Room Service
+
+    #if targetEnvironment(simulator)
+    private let simulatedRoomService = SimulatedRoomDataService()
+    #endif
 
     // MARK: - Participant Color
 
@@ -72,6 +83,28 @@ final class RoomViewModel {
     }
 
     var participantCount: Int { participants.count }
+
+    /// All participants for the 2D plot, including self and simulated users.
+    var allParticipantsForPlot: [RoomParticipant] {
+        var result = participants
+
+        // Add self if not already in Firebase participants (edge case during join)
+        if let userID = currentUserID, !result.contains(where: { $0.id == userID }), ownHeartRate > 0 {
+            result.append(RoomParticipant(
+                id: userID,
+                username: currentUsername,
+                currentHR: ownHeartRate,
+                previousHR: previousHeartRate,
+                color: assignedColor
+            ))
+        }
+
+        #if targetEnvironment(simulator)
+        result.append(contentsOf: simulatedParticipants)
+        #endif
+
+        return result
+    }
 
     // MARK: - Room Lifecycle
 
@@ -127,6 +160,11 @@ final class RoomViewModel {
         sendWatchCommand("enterRoom", roomID: roomID)
         #endif
 
+        // 6. Start simulated room participants (simulator only)
+        #if targetEnvironment(simulator)
+        startSimulatedParticipants()
+        #endif
+
         Log.rooms.info("Entered room \(self.roomID)")
     }
 
@@ -136,8 +174,15 @@ final class RoomViewModel {
         // 1. Cancel all background tasks
         observeTask?.cancel()
         heartRateTask?.cancel()
+        simulationTask?.cancel()
         observeTask = nil
         heartRateTask = nil
+        simulationTask = nil
+
+        #if targetEnvironment(simulator)
+        simulatedRoomService.stopSimulation()
+        simulatedParticipants = []
+        #endif
 
         // 2. Stop HR streaming
         healthKitService.stopHeartRateStreaming()
@@ -225,4 +270,18 @@ final class RoomViewModel {
             }
         }
     }
+
+    // MARK: - Private: Simulated Participants
+
+    #if targetEnvironment(simulator)
+    private func startSimulatedParticipants() {
+        let stream = simulatedRoomService.startSimulation()
+        simulationTask = Task {
+            for await simParticipants in stream {
+                guard !Task.isCancelled else { break }
+                self.simulatedParticipants = simParticipants
+            }
+        }
+    }
+    #endif
 }
