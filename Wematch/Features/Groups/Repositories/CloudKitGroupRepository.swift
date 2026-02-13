@@ -30,8 +30,11 @@ final class CloudKitGroupRepository: GroupRepository {
         do {
             let (results, _) = try await database.records(matching: query)
             return results.compactMap { _, result in try? result.get() }.map(Self.group(from:))
-        } catch let error as CKError where error.code == .unknownItem {
-            return [] // Record type not yet in schema
+        } catch let error as CKError where error.code == .unknownItem
+                    || error.code == .invalidArguments
+                    || error.code == .serverRejectedRequest {
+            Log.groups.debug("Query gracefully failed (schema not ready): \(error.localizedDescription)")
+            return []
         }
     }
 
@@ -74,7 +77,7 @@ final class CloudKitGroupRepository: GroupRepository {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        let predicate = NSPredicate(format: "name BEGINSWITH[c] %@", trimmed)
+        let predicate = NSPredicate(format: "name BEGINSWITH %@", trimmed)
         let query = CKQuery(recordType: "Group", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
 
@@ -229,8 +232,12 @@ final class CloudKitGroupRepository: GroupRepository {
             let code = GroupCodeGenerator.generate()
             let predicate = NSPredicate(format: "code == %@", code)
             let query = CKQuery(recordType: "Group", predicate: predicate)
-            let (results, _) = try await database.records(matching: query, resultsLimit: 1)
-            if results.isEmpty { return code }
+            do {
+                let (results, _) = try await database.records(matching: query, resultsLimit: 1)
+                if results.isEmpty { return code }
+            } catch let error as CKError where error.code == .unknownItem {
+                return code // Record type not yet in schema — no duplicates possible
+            }
         }
         // With 30^6 ≈ 729M possible codes, collision after 10 attempts is essentially impossible
         return GroupCodeGenerator.generate()
@@ -255,7 +262,9 @@ final class CloudKitGroupRepository: GroupRepository {
         record["name"] = group.name as CKRecordValue
         record["code"] = group.code as CKRecordValue
         record["adminID"] = group.adminID as CKRecordValue
-        record["memberIDs"] = group.memberIDs as CKRecordValue
+        if !group.memberIDs.isEmpty {
+            record["memberIDs"] = group.memberIDs as CKRecordValue
+        }
         record["createdAt"] = group.createdAt as CKRecordValue
         return record
     }
