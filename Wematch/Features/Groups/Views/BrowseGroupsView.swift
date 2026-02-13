@@ -13,7 +13,7 @@ struct BrowseGroupsView: View {
 
     var body: some View {
         ZStack {
-            WematchTheme.backgroundGradient.ignoresSafeArea()
+            AnimatedBackground()
 
             if searchText.isEmpty {
                 promptView

@@ -1,15 +1,26 @@
 import SwiftUI
+import UIKit
 
 enum WematchTheme {
 
-    // MARK: - Background Gradient
+    // MARK: - Adaptive Color Helper
+
+    private static func adaptive(light lightHex: String, dark darkHex: String) -> Color {
+        Color(uiColor: UIColor { traits in
+            UIColor(Color(hex: traits.userInterfaceStyle == .dark ? darkHex : lightHex))
+        })
+    }
+
+    // MARK: - Background
+
+    static let backgroundColors: [Color] = [
+        adaptive(light: "FDF2F8", dark: "1A0B20"),
+        adaptive(light: "F3E8FF", dark: "16102C"),
+        adaptive(light: "EDE9FE", dark: "12102A"),
+    ]
 
     static let backgroundGradient = LinearGradient(
-        colors: [
-            Color(hex: "FDF2F8"),
-            Color(hex: "F3E8FF"),
-            Color(hex: "EDE9FE")
-        ],
+        colors: backgroundColors,
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -28,12 +39,16 @@ enum WematchTheme {
 
     // MARK: - Glass Effect
 
-    static let glassBorderColor = Color.white.opacity(0.6)
+    static let glassBorderColor = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.15)
+            : UIColor.white.withAlphaComponent(0.6)
+    })
 
     // MARK: - Text Colors
 
-    static let textPrimary = Color(hex: "1F1F1F")
-    static let textSecondary = Color(hex: "6B7280")
+    static let textPrimary = adaptive(light: "1F1F1F", dark: "F5F5F5")
+    static let textSecondary = adaptive(light: "6B7280", dark: "9CA3AF")
     static let textOnColor = Color.white
 
     // MARK: - Heart Palette (20+ distinct colors)

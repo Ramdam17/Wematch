@@ -1,22 +1,18 @@
 import SwiftUI
 
 struct AnimatedBackground: View {
-    @State private var animateGradient = false
+    @State private var animate = false
 
     var body: some View {
         LinearGradient(
-            colors: [
-                Color(hex: "FDF2F8"),
-                Color(hex: "F3E8FF"),
-                Color(hex: "EDE9FE")
-            ],
-            startPoint: animateGradient ? .topLeading : .bottomLeading,
-            endPoint: animateGradient ? .bottomTrailing : .topTrailing
+            colors: WematchTheme.backgroundColors,
+            startPoint: animate ? .topLeading : .topTrailing,
+            endPoint: animate ? .bottomTrailing : .bottomLeading
         )
         .ignoresSafeArea()
         .onAppear {
             withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true)) {
-                animateGradient.toggle()
+                animate.toggle()
             }
         }
     }

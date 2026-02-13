@@ -5,7 +5,7 @@ struct UsernamePickerView: View {
 
     var body: some View {
         ZStack {
-            WematchTheme.backgroundGradient.ignoresSafeArea()
+            AnimatedBackground()
 
             VStack(spacing: WematchTheme.paddingLarge) {
                 Spacer()

@@ -77,17 +77,20 @@ struct FriendListView: View {
     private var friendsContent: some View {
         if let viewModel, viewModel.friends.isEmpty && !viewModel.isLoading {
             Spacer()
-            VStack(spacing: 16) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color(hex: "67E8F9").gradient)
-                Text("No Friends Yet")
-                    .font(WematchTypography.title2)
-                    .foregroundStyle(WematchTheme.textPrimary)
-                Text("Tap + to find and add friends")
-                    .font(WematchTypography.body)
-                    .foregroundStyle(WematchTheme.textSecondary)
+            GlassCard {
+                VStack(spacing: 16) {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Color(hex: "67E8F9").gradient)
+                    Text("No Friends Yet")
+                        .font(WematchTypography.title2)
+                        .foregroundStyle(WematchTheme.textPrimary)
+                    Text("Tap + to find and add friends")
+                        .font(WematchTypography.body)
+                        .foregroundStyle(WematchTheme.textSecondary)
+                }
             }
+            .padding()
             Spacer()
         } else if let viewModel {
             ScrollView {
@@ -116,14 +119,17 @@ struct FriendListView: View {
     private var requestsContent: some View {
         if let viewModel, viewModel.incomingRequests.isEmpty && viewModel.outgoingRequests.isEmpty {
             Spacer()
-            VStack(spacing: 16) {
-                Image(systemName: "envelope.open")
-                    .font(.system(size: 48))
-                    .foregroundStyle(WematchTheme.textSecondary)
-                Text("No Pending Requests")
-                    .font(WematchTypography.title2)
-                    .foregroundStyle(WematchTheme.textPrimary)
+            GlassCard {
+                VStack(spacing: 16) {
+                    Image(systemName: "envelope.open")
+                        .font(.system(size: 48))
+                        .foregroundStyle(WematchTheme.textSecondary)
+                    Text("No Pending Requests")
+                        .font(WematchTypography.title2)
+                        .foregroundStyle(WematchTheme.textPrimary)
+                }
             }
+            .padding()
             Spacer()
         } else if let viewModel {
             ScrollView {
