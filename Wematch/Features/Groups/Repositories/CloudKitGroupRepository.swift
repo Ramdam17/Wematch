@@ -74,7 +74,7 @@ final class CloudKitGroupRepository: GroupRepository {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        let predicate = NSPredicate(format: "name BEGINSWITH[c] %@", trimmed)
+        let predicate = NSPredicate(format: "name BEGINSWITH %@", trimmed)
         let query = CKQuery(recordType: "Group", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
 

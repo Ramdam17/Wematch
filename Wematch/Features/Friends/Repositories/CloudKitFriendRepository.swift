@@ -120,7 +120,7 @@ final class CloudKitFriendRepository: FriendRepository {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        let predicate = NSPredicate(format: "username BEGINSWITH[c] %@", trimmed)
+        let predicate = NSPredicate(format: "username BEGINSWITH %@", trimmed)
         let ckQuery = CKQuery(recordType: "UserProfile", predicate: predicate)
         ckQuery.sortDescriptors = [NSSortDescriptor(key: "username", ascending: true)]
 
