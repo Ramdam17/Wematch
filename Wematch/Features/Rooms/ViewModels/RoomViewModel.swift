@@ -106,6 +106,11 @@ final class RoomViewModel {
         return result
     }
 
+    /// Sync graph computed from current participants.
+    var syncGraph: SyncGraph {
+        SyncGraph(participants: allParticipantsForPlot)
+    }
+
     // MARK: - Room Lifecycle
 
     func enterRoom() async {
