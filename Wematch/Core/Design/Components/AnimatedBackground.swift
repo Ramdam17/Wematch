@@ -36,7 +36,7 @@ private struct Particle: Identifiable {
 }
 
 private struct SparkleParticlesView: View {
-    @State private var particles: [Particle] = (0..<15).map { _ in
+    @State private var particles: [Particle] = (0..<8).map { _ in
         Particle(
             x: Double.random(in: 0...1),
             y: Double.random(in: 0...1),
@@ -47,7 +47,7 @@ private struct SparkleParticlesView: View {
     }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 10)) { timeline in
             Canvas { context, size in
                 let time = timeline.date.timeIntervalSinceReferenceDate
                 for particle in particles {
