@@ -39,19 +39,16 @@ struct RoomListView: View {
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        GlassCard {
-            VStack(spacing: 16) {
-                HeartIcon(color: Color(hex: "FF6B9D"), size: 48, showGlow: true)
-                Text("No Rooms Yet")
-                    .font(WematchTypography.title2)
-                    .foregroundStyle(WematchTheme.textPrimary)
-                Text("Join a group to access its heart rate room")
-                    .font(WematchTypography.body)
-                    .foregroundStyle(WematchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
+        VStack(spacing: 16) {
+            HeartIcon(color: Color(hex: "FF6B9D"), size: 48, showGlow: true)
+            Text("No Rooms Yet")
+                .font(WematchTypography.title2)
+                .foregroundStyle(WematchTheme.textPrimary)
+            Text("Join a group to access its heart rate room")
+                .font(WematchTypography.body)
+                .foregroundStyle(WematchTheme.textSecondary)
+                .multilineTextAlignment(.center)
         }
-        .padding()
     }
 
     // MARK: - Rooms List

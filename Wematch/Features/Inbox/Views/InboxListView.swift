@@ -56,21 +56,18 @@ struct InboxListView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        GlassCard {
-            VStack(spacing: 16) {
-                Image(systemName: "envelope.open")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color(hex: "FBBF24").gradient)
-                Text("No Messages")
-                    .font(WematchTypography.title2)
-                    .foregroundStyle(WematchTheme.textPrimary)
-                Text("Notifications and requests will appear here")
-                    .font(WematchTypography.body)
-                    .foregroundStyle(WematchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
+        VStack(spacing: 16) {
+            Image(systemName: "envelope.open")
+                .font(.system(size: 48))
+                .foregroundStyle(Color(hex: "FBBF24").gradient)
+            Text("No Messages")
+                .font(WematchTypography.title2)
+                .foregroundStyle(WematchTheme.textPrimary)
+            Text("Notifications and requests will appear here")
+                .font(WematchTypography.body)
+                .foregroundStyle(WematchTheme.textSecondary)
+                .multilineTextAlignment(.center)
         }
-        .padding()
     }
 
     // MARK: - Messages List

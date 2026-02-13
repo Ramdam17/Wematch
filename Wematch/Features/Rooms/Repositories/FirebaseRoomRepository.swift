@@ -18,16 +18,21 @@ final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
 
     // MARK: - Path Helpers
 
+    /// Firebase RTDB keys cannot contain . # $ [ or ]
+    private func firebaseSafe(_ key: String) -> String {
+        key.replacingOccurrences(of: ".", with: "_")
+    }
+
     private func usersPath(_ roomID: String) -> String {
-        "rooms/\(roomID)/users"
+        "rooms/\(firebaseSafe(roomID))/users"
     }
 
     private func userPath(_ roomID: String, _ userID: String) -> String {
-        "rooms/\(roomID)/users/\(userID)"
+        "rooms/\(firebaseSafe(roomID))/users/\(firebaseSafe(userID))"
     }
 
     private func metadataPath(_ roomID: String) -> String {
-        "rooms/\(roomID)/metadata"
+        "rooms/\(firebaseSafe(roomID))/metadata"
     }
 
     // MARK: - RoomRepository
