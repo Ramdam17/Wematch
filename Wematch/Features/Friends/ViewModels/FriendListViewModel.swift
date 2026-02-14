@@ -14,6 +14,9 @@ final class FriendListViewModel {
     private(set) var isLoading = false
     var error: Error?
 
+    /// Set after creating a temp room — triggers navigation in FriendListView.
+    var pendingRoomNavigation: (roomID: String, roomName: String)?
+
     var incomingCount: Int { incomingRequests.count }
 
     // MARK: - Dependencies
@@ -21,15 +24,18 @@ final class FriendListViewModel {
     private let repository: any FriendRepository
     private let profileRepository: any UserProfileRepository
     private let inboxRepository: any InboxMessageRepository
+    private let tempRoomRepository: any TemporaryRoomRepository
     private let authManager: AuthenticationManager
 
     init(repository: (any FriendRepository)? = nil,
          profileRepository: (any UserProfileRepository)? = nil,
          inboxRepository: (any InboxMessageRepository)? = nil,
+         tempRoomRepository: (any TemporaryRoomRepository)? = nil,
          authManager: AuthenticationManager) {
         self.repository = repository ?? CloudKitFriendRepository()
         self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
         self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
+        self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
         self.authManager = authManager
     }
 
@@ -147,6 +153,45 @@ final class FriendListViewModel {
         } catch {
             self.error = error
             Log.friends.error("Failed to remove friend: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Temporary Room
+
+    func startRoom(with friendProfile: UserProfile) async {
+        guard let userID = currentUserID,
+              let username = authManager.userProfile?.username else { return }
+
+        let roomID = TemporaryRoom.roomID(userA: userID, userB: friendProfile.id)
+
+        do {
+            // Create temp room index entries for both users
+            try await tempRoomRepository.createRoom(
+                roomID: roomID,
+                userA: userID,
+                userB: friendProfile.id,
+                userAUsername: username,
+                userBUsername: friendProfile.username
+            )
+
+            // Send inbox invitation to friend
+            try await inboxRepository.createMessage(
+                recipientID: friendProfile.id,
+                type: .temporaryRoomInvitation,
+                payload: [
+                    "roomID": roomID,
+                    "senderID": userID,
+                    "senderUsername": username
+                ]
+            )
+
+            // Trigger navigation
+            pendingRoomNavigation = (roomID, "Room with \(friendProfile.username)")
+
+            Log.friends.info("Started temp room \(roomID) with \(friendProfile.username)")
+        } catch {
+            self.error = error
+            Log.friends.error("Failed to start room: \(error.localizedDescription)")
         }
     }
 }

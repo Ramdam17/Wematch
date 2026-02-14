@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FriendRowView: View {
     let profile: UserProfile
+    var onStartRoom: (() -> Void)? = nil
 
     var body: some View {
         GlassCard {
@@ -23,6 +24,17 @@ struct FriendRowView: View {
                 }
 
                 Spacer()
+
+                if let onStartRoom {
+                    Button {
+                        onStartRoom()
+                    } label: {
+                        Image(systemName: "heart.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(WematchTheme.primaryGradient)
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 StatusBadge(text: "Friends", style: .friends)
             }

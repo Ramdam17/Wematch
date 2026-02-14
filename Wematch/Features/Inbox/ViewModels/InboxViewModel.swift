@@ -11,6 +11,9 @@ final class InboxViewModel {
     private(set) var isLoading = false
     var error: Error?
 
+    /// Set when user taps "Join" on a temp room invitation — triggers navigation in InboxListView.
+    var pendingRoomNavigation: (roomID: String, roomName: String)?
+
     var unreadCount: Int {
         messages.filter { !$0.isRead }.count
     }
@@ -58,6 +61,8 @@ final class InboxViewModel {
                 try await handleGroupJoinRequest(action: action, message: message)
             case .friendRequest:
                 try await handleFriendRequest(action: action, message: message)
+            case .temporaryRoomInvitation:
+                handleTemporaryRoomInvitation(action: action, message: message)
             default:
                 break
             }
@@ -127,6 +132,24 @@ final class InboxViewModel {
             try await groupRepository.declineJoinRequest(requestID: requestID)
             Log.inbox.info("Declined group join request \(requestID) from inbox")
         case .join:
+            break
+        }
+    }
+
+    private func handleTemporaryRoomInvitation(action: InboxAction, message: InboxMessage) {
+        guard let roomID = message.payload["roomID"],
+              let senderUsername = message.payload["senderUsername"] else {
+            Log.inbox.warning("Missing payload for temporaryRoomInvitation action")
+            return
+        }
+
+        switch action {
+        case .join:
+            pendingRoomNavigation = (roomID, "Room with \(senderUsername)")
+            Log.inbox.info("Joining temp room \(roomID) from inbox")
+        case .decline:
+            Log.inbox.info("Declined temp room from \(senderUsername)")
+        default:
             break
         }
     }

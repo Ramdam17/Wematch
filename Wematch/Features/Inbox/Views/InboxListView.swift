@@ -4,6 +4,8 @@ struct InboxListView: View {
     @Environment(AuthenticationManager.self) private var authManager
     @State private var viewModel: InboxViewModel?
     @Binding var unreadCount: Int
+    @State private var showRoom = false
+    @State private var roomNavInfo: (roomID: String, roomName: String)?
 
     var body: some View {
         ZStack {
@@ -18,6 +20,11 @@ struct InboxListView: View {
             }
         }
         .navigationTitle("Inbox")
+        .navigationDestination(isPresented: $showRoom) {
+            if let info = roomNavInfo {
+                RoomView(roomID: info.roomID, roomName: info.roomName, authManager: authManager)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let viewModel, viewModel.unreadCount > 0 {
@@ -42,6 +49,13 @@ struct InboxListView: View {
         }
         .onChange(of: viewModel?.unreadCount) { _, newValue in
             unreadCount = newValue ?? 0
+        }
+        .onChange(of: viewModel?.pendingRoomNavigation?.roomID) { _, newValue in
+            if let nav = viewModel?.pendingRoomNavigation {
+                roomNavInfo = nav
+                showRoom = true
+                viewModel?.pendingRoomNavigation = nil
+            }
         }
         .alert("Error", isPresented: .init(
             get: { viewModel?.error != nil },

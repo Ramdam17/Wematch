@@ -10,6 +10,8 @@ struct FriendListView: View {
     @State private var viewModel: FriendListViewModel?
     @State private var selectedTab: FriendTab = .friends
     @State private var showSearchSheet = false
+    @State private var showRoom = false
+    @State private var roomNavInfo: (roomID: String, roomName: String)?
 
     var body: some View {
         ZStack {
@@ -38,6 +40,11 @@ struct FriendListView: View {
             }
         }
         .navigationTitle("Friends")
+        .navigationDestination(isPresented: $showRoom) {
+            if let info = roomNavInfo {
+                RoomView(roomID: info.roomID, roomName: info.roomName, authManager: authManager)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -60,6 +67,13 @@ struct FriendListView: View {
         }
         .refreshable {
             await viewModel?.fetchAll()
+        }
+        .onChange(of: viewModel?.pendingRoomNavigation?.roomID) { _, newValue in
+            if let nav = viewModel?.pendingRoomNavigation {
+                roomNavInfo = nav
+                showRoom = true
+                viewModel?.pendingRoomNavigation = nil
+            }
         }
         .alert("Error", isPresented: .init(
             get: { viewModel?.error != nil },
@@ -94,14 +108,16 @@ struct FriendListView: View {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.friends) { friendship in
                         if let profile = viewModel.friendProfile(for: friendship) {
-                            FriendRowView(profile: profile)
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        Task { await viewModel.removeFriend(friendshipID: friendship.id) }
-                                    } label: {
-                                        Label("Remove", systemImage: "person.badge.minus")
-                                    }
+                            FriendRowView(profile: profile) {
+                                Task { await viewModel.startRoom(with: profile) }
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    Task { await viewModel.removeFriend(friendshipID: friendship.id) }
+                                } label: {
+                                    Label("Remove", systemImage: "person.badge.minus")
                                 }
+                            }
                         }
                     }
                 }

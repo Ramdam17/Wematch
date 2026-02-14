@@ -9,7 +9,7 @@ struct RoomListView: View {
             AnimatedBackground()
 
             if let viewModel {
-                if viewModel.groups.isEmpty && !viewModel.isLoading {
+                if viewModel.isEmpty && !viewModel.isLoading {
                     emptyStateView
                 } else {
                     roomsList(viewModel: viewModel)
@@ -21,10 +21,10 @@ struct RoomListView: View {
             if viewModel == nil {
                 viewModel = RoomListViewModel(authManager: authManager)
             }
-            await viewModel?.fetchGroups()
+            await viewModel?.fetchRooms()
         }
         .refreshable {
-            await viewModel?.fetchGroups()
+            await viewModel?.fetchRooms()
         }
         .alert("Error", isPresented: .init(
             get: { viewModel?.error != nil },
@@ -44,7 +44,7 @@ struct RoomListView: View {
             Text("No Rooms Yet")
                 .font(WematchTypography.title2)
                 .foregroundStyle(WematchTheme.textPrimary)
-            Text("Join a group to access its heart rate room")
+            Text("Join a group or start a room with a friend")
                 .font(WematchTypography.body)
                 .foregroundStyle(WematchTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -56,29 +56,44 @@ struct RoomListView: View {
     private func roomsList(viewModel: RoomListViewModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 12) {
+                // Group rooms
                 ForEach(viewModel.groups) { group in
                     NavigationLink(value: group.id) {
-                        roomRow(group: group)
+                        groupRoomRow(group: group)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Temporary 1-on-1 rooms
+                ForEach(viewModel.temporaryRooms) { tempRoom in
+                    NavigationLink(value: tempRoom.id) {
+                        tempRoomRow(tempRoom: tempRoom)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding()
         }
-        .navigationDestination(for: String.self) { groupID in
-            if let group = viewModel.groups.first(where: { $0.id == groupID }) {
+        .navigationDestination(for: String.self) { roomID in
+            if let group = viewModel.groups.first(where: { $0.id == roomID }) {
                 RoomView(
                     roomID: group.id,
                     roomName: group.name,
+                    authManager: authManager
+                )
+            } else if let tempRoom = viewModel.temporaryRooms.first(where: { $0.id == roomID }) {
+                RoomView(
+                    roomID: tempRoom.id,
+                    roomName: "Room with \(tempRoom.friendUsername)",
                     authManager: authManager
                 )
             }
         }
     }
 
-    // MARK: - Row
+    // MARK: - Group Room Row
 
-    private func roomRow(group: Group) -> some View {
+    private func groupRoomRow(group: Group) -> some View {
         GlassCard {
             HStack(spacing: 12) {
                 HeartIcon(
@@ -103,6 +118,33 @@ struct RoomListView: View {
                     .foregroundStyle(
                         WematchTheme.primaryGradient
                     )
+            }
+        }
+    }
+
+    // MARK: - Temp Room Row
+
+    private func tempRoomRow(tempRoom: TemporaryRoom) -> some View {
+        GlassCard {
+            HStack(spacing: 12) {
+                HeartIcon(
+                    color: Color(hex: "EC4899"),
+                    size: 32,
+                    showGlow: false
+                )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(tempRoom.friendUsername)
+                        .font(WematchTypography.headline)
+                        .foregroundStyle(WematchTheme.textPrimary)
+                    Text("1-on-1 Room")
+                        .font(WematchTypography.caption)
+                        .foregroundStyle(WematchTheme.textSecondary)
+                }
+
+                Spacer()
+
+                StatusBadge(text: "1-on-1", style: .custom(Color(hex: "EC4899")))
             }
         }
     }

@@ -22,6 +22,7 @@ final class RoomViewModel {
     // MARK: - Dependencies
 
     private let roomRepository: any RoomRepository
+    private let tempRoomRepository: any TemporaryRoomRepository
     private let healthKitService: any HealthKitServiceProtocol
     private let watchService: any WatchConnectivityServiceProtocol
     private let authManager: AuthenticationManager
@@ -62,12 +63,14 @@ final class RoomViewModel {
     init(roomID: String,
          roomName: String,
          roomRepository: (any RoomRepository)? = nil,
+         tempRoomRepository: (any TemporaryRoomRepository)? = nil,
          healthKitService: (any HealthKitServiceProtocol)? = nil,
          watchService: (any WatchConnectivityServiceProtocol)? = nil,
          authManager: AuthenticationManager) {
         self.roomID = roomID
         self.roomName = roomName
         self.roomRepository = roomRepository ?? FirebaseRoomRepository()
+        self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
         self.watchService = watchService ?? PhoneSessionManager.shared
         self.authManager = authManager
 
@@ -219,6 +222,27 @@ final class RoomViewModel {
             try await roomRepository.leaveRoom(roomID: roomID, userID: userID)
         } catch {
             Log.rooms.error("Failed to leave room cleanly: \(error.localizedDescription)")
+        }
+
+        // 4b. Temp room cleanup — destroy index if no participants remain
+        if roomID.hasPrefix("temp_") {
+            do {
+                let hasOthers = try await tempRoomRepository.hasParticipants(roomID: roomID)
+                if !hasOthers {
+                    let safeID = userID.firebaseSafe()
+                    // Extract both user IDs from temp room index (we are one of them)
+                    let roomSuffix = roomID.dropFirst("temp_".count)
+                    let parts = roomSuffix.split(separator: "_", maxSplits: 1)
+                    if parts.count == 2 {
+                        let userA = String(parts[0])
+                        let userB = String(parts[1])
+                        try await tempRoomRepository.deleteRoom(roomID: roomID, userA: userA, userB: userB)
+                        Log.rooms.info("Destroyed temp room \(self.roomID) — no participants left")
+                    }
+                }
+            } catch {
+                Log.rooms.warning("Temp room cleanup failed: \(error.localizedDescription)")
+            }
         }
 
         // 5. Clear state
