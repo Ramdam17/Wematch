@@ -21,6 +21,24 @@ struct SyncCluster: Identifiable, Sendable {
     }
 }
 
+// MARK: - Sync Pair
+
+/// Canonical pair of user IDs (sorted) representing a sync edge.
+struct SyncPair: Hashable, Sendable {
+    let id1: String
+    let id2: String
+
+    init(_ a: String, _ b: String) {
+        if a < b {
+            self.id1 = a
+            self.id2 = b
+        } else {
+            self.id1 = b
+            self.id2 = a
+        }
+    }
+}
+
 // MARK: - SyncGraph
 
 struct SyncGraph: Sendable {
@@ -182,6 +200,21 @@ struct SyncGraph: Sendable {
         }
 
         return maxDist
+    }
+
+    // MARK: - Synced Pairs
+
+    /// All current sync edges as canonical pairs.
+    var syncedPairs: Set<SyncPair> {
+        var pairs = Set<SyncPair>()
+        for i in participants.indices {
+            for j in (i + 1)..<participants.count {
+                if isEdge(participants[i], participants[j]) {
+                    pairs.insert(SyncPair(participants[i].id, participants[j].id))
+                }
+            }
+        }
+        return pairs
     }
 
     // MARK: - Convenience

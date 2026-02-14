@@ -42,6 +42,17 @@ final class RoomViewModel {
     private let simulatedRoomService = SimulatedRoomDataService()
     #endif
 
+    // MARK: - Sync Effects State
+
+    /// Stars spawned by sync formations.
+    private(set) var activeStars: [SyncStar] = []
+
+    /// Previous frame's synced pairs for formation detection.
+    private var previousSyncedPairs: Set<SyncPair> = []
+
+    /// Timer task for star drift updates.
+    private var starTimerTask: Task<Void, Never>?
+
     // MARK: - Participant Color
 
     private var assignedColor: String = "FF6B9D"
@@ -170,6 +181,9 @@ final class RoomViewModel {
         startSimulatedParticipants()
         #endif
 
+        // 7. Start star drift timer
+        startStarTimer()
+
         Log.rooms.info("Entered room \(self.roomID)")
     }
 
@@ -180,9 +194,11 @@ final class RoomViewModel {
         observeTask?.cancel()
         heartRateTask?.cancel()
         simulationTask?.cancel()
+        starTimerTask?.cancel()
         observeTask = nil
         heartRateTask = nil
         simulationTask = nil
+        starTimerTask = nil
 
         #if targetEnvironment(simulator)
         simulatedRoomService.stopSimulation()
@@ -210,8 +226,79 @@ final class RoomViewModel {
         participants = []
         ownHeartRate = 0
         previousHeartRate = 0
+        activeStars = []
+        previousSyncedPairs = []
 
         Log.rooms.info("Exited room \(self.roomID)")
+    }
+
+    // MARK: - Sync Effects
+
+    /// Detect new sync formations and trigger effects.
+    private func processSyncChanges() {
+        let currentPairs = syncGraph.syncedPairs
+        let newFormations = currentPairs.subtracting(previousSyncedPairs)
+
+        if !newFormations.isEmpty && !previousSyncedPairs.isEmpty {
+            // Spawn one star per new sync pair
+            for _ in newFormations {
+                let star = SyncStar(
+                    position: CGPoint(
+                        x: CGFloat.random(in: 0.1...0.9),
+                        y: CGFloat.random(in: 0.1...0.9)
+                    ),
+                    driftVelocity: CGPoint(
+                        x: CGFloat.random(in: -0.02...0.02),
+                        y: CGFloat.random(in: -0.02...0.02)
+                    )
+                )
+                activeStars.append(star)
+            }
+
+            // Haptic feedback
+            HapticService.triggerSyncFormation()
+
+            Log.rooms.debug("New sync formations: \(newFormations.count), active stars: \(self.activeStars.count)")
+        }
+
+        previousSyncedPairs = currentPairs
+    }
+
+    /// Update star positions and remove expired ones.
+    private func updateStars() {
+        let now = Date()
+        let lifetime: TimeInterval = 180 // 3 minutes
+        let fadeStart: TimeInterval = 150 // Start fading at 2.5 min
+
+        activeStars.removeAll { now.timeIntervalSince($0.birthDate) > lifetime }
+
+        for i in activeStars.indices {
+            // Drift
+            activeStars[i].position.x += activeStars[i].driftVelocity.x
+            activeStars[i].position.y += activeStars[i].driftVelocity.y
+
+            // Wrap around edges
+            if activeStars[i].position.x < 0 { activeStars[i].position.x = 1 }
+            if activeStars[i].position.x > 1 { activeStars[i].position.x = 0 }
+            if activeStars[i].position.y < 0 { activeStars[i].position.y = 1 }
+            if activeStars[i].position.y > 1 { activeStars[i].position.y = 0 }
+
+            // Fade
+            let age = now.timeIntervalSince(activeStars[i].birthDate)
+            if age > fadeStart {
+                activeStars[i].opacity = 1.0 - (age - fadeStart) / (lifetime - fadeStart)
+            }
+        }
+    }
+
+    private func startStarTimer() {
+        starTimerTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { break }
+                updateStars()
+            }
+        }
     }
 
     // MARK: - Private: Watch Commands
@@ -237,6 +324,7 @@ final class RoomViewModel {
             for await updatedParticipants in roomRepository.observeParticipants(roomID: roomID) {
                 guard !Task.isCancelled else { break }
                 self.participants = updatedParticipants
+                processSyncChanges()
             }
         }
     }
@@ -285,6 +373,7 @@ final class RoomViewModel {
             for await simParticipants in stream {
                 guard !Task.isCancelled else { break }
                 self.simulatedParticipants = simParticipants
+                processSyncChanges()
             }
         }
     }

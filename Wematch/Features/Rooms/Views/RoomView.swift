@@ -81,7 +81,9 @@ struct RoomView: View {
             // 2D Heart Plot (fills available space)
             HeartPlotView(
                 participants: viewModel.allParticipantsForPlot,
-                currentUserID: viewModel.currentUserID
+                currentUserID: viewModel.currentUserID,
+                syncGraph: viewModel.syncGraph,
+                activeStars: viewModel.activeStars
             )
             .frame(maxHeight: .infinity)
 
@@ -116,6 +118,9 @@ struct RoomView: View {
 
                 Spacer()
 
+                // Sync stats
+                syncStats
+
                 // Participant count
                 HStack(spacing: 4) {
                     Image(systemName: "person.2.fill")
@@ -138,6 +143,43 @@ struct RoomView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Sync Stats
+
+    private var syncStats: some View {
+        let graph = viewModel.syncGraph
+        let maxChain = graph.softClusters.map(\.chainLength).max() ?? 0
+        let syncedIDs = Set(graph.softClusters.flatMap(\.memberIDs))
+
+        return HStack(spacing: 10) {
+            // Max chain length
+            if maxChain > 0 {
+                HStack(spacing: 3) {
+                    Image(systemName: "link")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color(hex: "A78BFA"))
+                    Text("\(maxChain)")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color(hex: "A78BFA"))
+                }
+            }
+
+            // Synced user count
+            if syncedIDs.count >= 2 {
+                HStack(spacing: 3) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color(hex: "34D399"))
+                    Text("\(syncedIDs.count)")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color(hex: "34D399"))
+                }
+            }
+        }
+        .contentTransition(.numericText())
+        .animation(.easeInOut(duration: 0.3), value: maxChain)
+        .animation(.easeInOut(duration: 0.3), value: syncedIDs.count)
     }
 
     // MARK: - Actions
