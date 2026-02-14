@@ -12,6 +12,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: WematchTheme.paddingMedium) {
                         profileSection(viewModel)
+                        dashboardSection()
                         accountSection(viewModel)
                     }
                     .padding()
@@ -83,6 +84,35 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func dashboardSection() -> some View {
+        NavigationLink {
+            DashboardPlaceholderView()
+        } label: {
+            GlassCard {
+                HStack {
+                    Image(systemName: "chart.xyaxis.line")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color(hex: "F472B6").gradient)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Dashboard")
+                            .font(WematchTypography.headline)
+                            .foregroundStyle(WematchTheme.textPrimary)
+                        Text("Coming Soon")
+                            .font(WematchTypography.caption)
+                            .foregroundStyle(WematchTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(WematchTypography.caption)
+                        .foregroundStyle(WematchTheme.textSecondary)
+                }
+            }
         }
     }
 
