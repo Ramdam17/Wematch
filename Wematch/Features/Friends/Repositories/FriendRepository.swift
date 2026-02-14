@@ -32,4 +32,7 @@ protocol FriendRepository: Sendable {
 
     // Search
     func searchUsers(query: String, excludingUserID: String) async throws -> [UserProfile]
+
+    // Account deletion
+    func deleteAllFriendData(userID: String) async throws
 }

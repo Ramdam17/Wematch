@@ -225,6 +225,40 @@ final class CloudKitGroupRepository: GroupRepository {
         Log.groups.info("Removed member \(userID) from group \(groupID)")
     }
 
+    // MARK: - Account Deletion
+
+    func fetchAdminGroups(userID: String) async throws -> [Group] {
+        try await fetchGroups(predicate: NSPredicate(format: "adminID == %@", userID))
+    }
+
+    func removeUserFromAllGroups(userID: String) async throws {
+        // Remove from groups where user is a member (not admin)
+        let memberGroups = try await fetchGroups(predicate: NSPredicate(format: "memberIDs CONTAINS %@", userID))
+        for group in memberGroups where group.adminID != userID {
+            let recordID = CKRecord.ID(recordName: group.id)
+            let record = try await database.record(for: recordID)
+            var memberIDs = record["memberIDs"] as? [String] ?? []
+            memberIDs.removeAll { $0 == userID }
+            record["memberIDs"] = memberIDs as CKRecordValue
+            try await database.save(record)
+        }
+
+        // Delete all join requests by this user
+        let predicate = NSPredicate(format: "userID == %@", userID)
+        let query = CKQuery(recordType: "JoinRequest", predicate: predicate)
+        do {
+            let (results, _) = try await database.records(matching: query)
+            let ids = results.map(\.0)
+            if !ids.isEmpty {
+                _ = try await database.modifyRecords(saving: [], deleting: ids, savePolicy: .changedKeys)
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            // No join requests exist yet
+        }
+
+        Log.groups.info("Removed user \(userID) from all groups and deleted their join requests")
+    }
+
     // MARK: - Helpers
 
     private func generateUniqueCode() async throws -> String {

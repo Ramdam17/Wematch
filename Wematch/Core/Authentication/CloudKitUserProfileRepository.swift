@@ -42,6 +42,12 @@ final class CloudKitUserProfileRepository: UserProfileRepository {
         }
     }
 
+    func deleteProfile(userID: String) async throws {
+        let recordID = CKRecord.ID(recordName: userID)
+        try await database.deleteRecord(withID: recordID)
+        Log.cloudKit.info("Deleted UserProfile for \(userID)")
+    }
+
     // MARK: - Record Conversion
 
     private static func userProfile(from record: CKRecord) -> UserProfile {
