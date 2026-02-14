@@ -1,55 +1,42 @@
 import SwiftUI
 
 struct WatchRoomView: View {
-    let heartRate: Double
-    let isStreaming: Bool
+    let viewModel: WatchRoomViewModel
     let onStop: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "heart.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(.pink.gradient)
-                .symbolEffect(.pulse, isActive: isStreaming)
+        ZStack {
+            // 2D Heart rate plot
+            WatchHeartPlotView(
+                participants: viewModel.participants,
+                currentUserID: viewModel.currentUserID
+            )
 
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(Int(heartRate))")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.pink)
-                    .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.3), value: Int(heartRate))
+            // Stats bar at bottom
+            VStack {
+                Spacer()
 
-                Text("BPM")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    WatchStatsOverlayView(
+                        heartRate: viewModel.ownHeartRate,
+                        maxChain: viewModel.maxChain,
+                        syncedCount: viewModel.syncedCount,
+                        participantCount: viewModel.participants.count
+                    )
+
+                    Button(action: onStop) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.red.opacity(0.8))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
             }
-
-            if isStreaming {
-                Text("Streaming")
-                    .font(.caption2)
-                    .foregroundStyle(.green)
-            } else {
-                Text("Connecting...")
-                    .font(.caption2)
-                    .foregroundStyle(.yellow)
-            }
-
-            Button(action: onStop) {
-                Text("Stop")
-                    .font(.footnote.bold())
-                    .foregroundStyle(.red)
-            }
-            .buttonStyle(.bordered)
-            .tint(.red)
+            .padding(.bottom, 2)
         }
+        .ignoresSafeArea(edges: .top)
     }
-}
-
-#Preview {
-    WatchRoomView(
-        heartRate: 78,
-        isStreaming: true,
-        onStop: {}
-    )
 }

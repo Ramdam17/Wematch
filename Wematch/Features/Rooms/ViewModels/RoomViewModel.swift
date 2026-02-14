@@ -239,7 +239,9 @@ final class RoomViewModel {
         let currentPairs = syncGraph.syncedPairs
         let newFormations = currentPairs.subtracting(previousSyncedPairs)
 
-        if !newFormations.isEmpty && !previousSyncedPairs.isEmpty {
+        let hasNewFormations = !newFormations.isEmpty && !previousSyncedPairs.isEmpty
+
+        if hasNewFormations {
             // Spawn one star per new sync pair
             for _ in newFormations {
                 let star = SyncStar(
@@ -262,6 +264,9 @@ final class RoomViewModel {
         }
 
         previousSyncedPairs = currentPairs
+
+        // Send room state to Watch
+        sendRoomUpdateToWatch(newSyncFormations: hasNewFormations)
     }
 
     /// Update star positions and remove expired ones.
@@ -299,6 +304,33 @@ final class RoomViewModel {
                 updateStars()
             }
         }
+    }
+
+    // MARK: - Private: Watch Room Updates
+
+    private func sendRoomUpdateToWatch(newSyncFormations: Bool) {
+        #if !targetEnvironment(simulator)
+        let graph = syncGraph
+        let maxChain = graph.softClusters.map(\.chainLength).max() ?? 0
+        let syncedIDs = Set(graph.softClusters.flatMap(\.memberIDs))
+
+        let participantDicts: [[String: Any]] = allParticipantsForPlot.map { p in
+            [
+                "id": p.id,
+                "currentHR": p.currentHR,
+                "previousHR": p.previousHR,
+                "color": p.color
+            ]
+        }
+
+        PhoneSessionManager.shared.sendRoomUpdate(
+            participants: participantDicts,
+            currentUserID: currentUserID ?? "",
+            maxChain: maxChain,
+            syncedCount: syncedIDs.count,
+            newSyncFormations: newSyncFormations
+        )
+        #endif
     }
 
     // MARK: - Private: Watch Commands

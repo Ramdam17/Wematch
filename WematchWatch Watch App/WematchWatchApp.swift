@@ -6,9 +6,7 @@ struct WematchWatchApp: App {
     private let logger = Logger(subsystem: "com.remyramadour.Wematch.watchkitapp", category: "general")
 
     @State private var heartRateManager = WatchHeartRateManager()
-    @State private var currentHR: Double = 0
-    @State private var isInRoom = false
-    @State private var streamTask: Task<Void, Never>?
+    @State private var viewModel: WatchRoomViewModel?
 
     init() {
         WatchSessionManager.shared.activate()
@@ -18,10 +16,9 @@ struct WematchWatchApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if isInRoom {
+                if let viewModel, viewModel.isInRoom {
                     WatchRoomView(
-                        heartRate: currentHR,
-                        isStreaming: heartRateManager.isStreaming,
+                        viewModel: viewModel,
                         onStop: { stopRoom() }
                     )
                 } else {
@@ -54,38 +51,18 @@ struct WematchWatchApp: App {
     // MARK: - Room Lifecycle
 
     private func startRoom() {
-        guard !isInRoom else { return }
-        isInRoom = true
+        guard viewModel == nil || viewModel?.isInRoom == false else { return }
 
-        streamTask = Task {
-            // Request HealthKit auth if needed
-            if !heartRateManager.isAuthorized {
-                do {
-                    try await heartRateManager.requestAuthorization()
-                } catch {
-                    logger.error("HealthKit auth failed: \(error.localizedDescription)")
-                    isInRoom = false
-                    return
-                }
-            }
-
-            // Start streaming HR
-            for await hr in heartRateManager.startStreaming() {
-                guard !Task.isCancelled else { break }
-                currentHR = hr
-                WatchSessionManager.shared.sendHeartRate(hr)
-            }
-        }
+        let vm = WatchRoomViewModel(heartRateManager: heartRateManager)
+        viewModel = vm
+        vm.enterRoom()
 
         logger.info("Watch room started")
     }
 
     private func stopRoom() {
-        streamTask?.cancel()
-        streamTask = nil
-        heartRateManager.stopStreaming()
-        currentHR = 0
-        isInRoom = false
+        viewModel?.exitRoom()
+        viewModel = nil
         logger.info("Watch room stopped")
     }
 }
