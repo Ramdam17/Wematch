@@ -88,6 +88,25 @@ final class CloudKitInboxRepository: InboxRepository {
         }
     }
 
+    // MARK: - Account Deletion
+
+    func deleteAllMessages(userID: String) async throws {
+        let predicate = NSPredicate(format: "recipientID == %@", userID)
+        let query = CKQuery(recordType: "InboxMessage", predicate: predicate)
+
+        do {
+            let (results, _) = try await database.records(matching: query)
+            guard !results.isEmpty else { return }
+
+            let ids = results.map(\.0)
+            _ = try await database.modifyRecords(saving: [], deleting: ids, savePolicy: .changedKeys)
+
+            Log.inbox.info("Deleted \(ids.count) inbox messages for user \(userID)")
+        } catch let error as CKError where error.code == .unknownItem {
+            return
+        }
+    }
+
     // MARK: - Record Conversion
 
     private static func inboxMessage(from record: CKRecord) -> InboxMessage? {

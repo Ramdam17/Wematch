@@ -13,4 +13,5 @@ enum Log {
     static let rooms = Logger(subsystem: "com.remyramadour.Wematch", category: "rooms")
     static let inbox = Logger(subsystem: "com.remyramadour.Wematch", category: "inbox")
     static let featureFlags = Logger(subsystem: "com.remyramadour.Wematch", category: "featureflags")
+    static let settings = Logger(subsystem: "com.remyramadour.Wematch", category: "settings")
 }

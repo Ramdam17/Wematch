@@ -5,7 +5,7 @@ struct MainTabView: View {
     @State private var inboxUnreadCount = 0
 
     enum AppTab: String {
-        case rooms, groups, friends, inbox
+        case rooms, groups, friends, inbox, settings
     }
 
     var body: some View {
@@ -34,6 +34,12 @@ struct MainTabView: View {
                 }
             }
             .badge(inboxUnreadCount)
+
+            Tab("Settings", systemImage: "gearshape.fill", value: .settings) {
+                NavigationStack {
+                    SettingsView()
+                }
+            }
         }
     }
 }

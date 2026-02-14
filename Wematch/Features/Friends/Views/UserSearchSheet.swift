@@ -25,7 +25,7 @@ struct UserSearchSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $viewModel.searchText, prompt: "Search by username")
             .onChange(of: viewModel.searchText) {
-                Task { await viewModel.search() }
+                Task { viewModel.search() }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

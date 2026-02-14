@@ -6,4 +6,7 @@ protocol InboxRepository: Sendable {
     func markAllAsRead(userID: String) async throws
     func deleteMessage(messageID: String) async throws
     func unreadCount(userID: String) async throws -> Int
+
+    // Account deletion
+    func deleteAllMessages(userID: String) async throws
 }

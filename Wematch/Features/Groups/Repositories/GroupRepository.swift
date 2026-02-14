@@ -41,4 +41,8 @@ protocol GroupRepository: Sendable {
     // Membership
     func leaveGroup(groupID: String, userID: String) async throws
     func removeMember(groupID: String, userID: String) async throws
+
+    // Account deletion
+    func fetchAdminGroups(userID: String) async throws -> [Group]
+    func removeUserFromAllGroups(userID: String) async throws
 }

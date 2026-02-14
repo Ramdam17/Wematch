@@ -137,6 +137,41 @@ final class CloudKitFriendRepository: FriendRepository {
         }
     }
 
+    // MARK: - Account Deletion
+
+    func deleteAllFriendData(userID: String) async throws {
+        // Delete all friendships
+        let friendships = try await fetchFriends(userID: userID)
+        if !friendships.isEmpty {
+            let ids = friendships.map { CKRecord.ID(recordName: $0.id) }
+            _ = try await database.modifyRecords(saving: [], deleting: ids, savePolicy: .changedKeys)
+        }
+
+        // Delete all friend requests (sent and received, any status)
+        async let sentResults = fetchAllRequests(predicate: NSPredicate(format: "senderID == %@", userID))
+        async let receivedResults = fetchAllRequests(predicate: NSPredicate(format: "receiverID == %@", userID))
+
+        let allRequests = try await sentResults + receivedResults
+        if !allRequests.isEmpty {
+            var seen = Set<String>()
+            let uniqueIDs = allRequests.filter { seen.insert($0).inserted }
+                .map { CKRecord.ID(recordName: $0) }
+            _ = try await database.modifyRecords(saving: [], deleting: uniqueIDs, savePolicy: .changedKeys)
+        }
+
+        Log.friends.info("Deleted all friend data for user \(userID)")
+    }
+
+    private func fetchAllRequests(predicate: NSPredicate) async throws -> [String] {
+        let query = CKQuery(recordType: "FriendRequest", predicate: predicate)
+        do {
+            let (results, _) = try await database.records(matching: query)
+            return results.map { $0.0.recordName }
+        } catch let error as CKError where error.code == .unknownItem {
+            return []
+        }
+    }
+
     // MARK: - Helpers
 
     private func fetchFriendships(predicate: NSPredicate) async throws -> [Friendship] {

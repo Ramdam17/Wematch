@@ -229,7 +229,6 @@ final class RoomViewModel {
             do {
                 let hasOthers = try await tempRoomRepository.hasParticipants(roomID: roomID)
                 if !hasOthers {
-                    let safeID = userID.firebaseSafe()
                     // Extract both user IDs from temp room index (we are one of them)
                     let roomSuffix = roomID.dropFirst("temp_".count)
                     let parts = roomSuffix.split(separator: "_", maxSplits: 1)
