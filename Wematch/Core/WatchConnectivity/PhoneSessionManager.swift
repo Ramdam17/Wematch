@@ -106,4 +106,30 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate, WatchConnectivityS
         isReachable = session.isReachable
         Log.watchConnectivity.info("Watch reachability changed: \(session.isReachable)")
     }
+
+    // MARK: - Room Update Sending
+
+    /// Send room state to Watch for 2D plot rendering (fire-and-forget, ~1Hz).
+    func sendRoomUpdate(
+        participants: [[String: Any]],
+        currentUserID: String,
+        maxChain: Int,
+        syncedCount: Int,
+        newSyncFormations: Bool
+    ) {
+        guard WCSession.default.isReachable else { return }
+
+        let message: [String: Any] = [
+            "type": "roomUpdate",
+            "participants": participants,
+            "currentUserID": currentUserID,
+            "maxChain": maxChain,
+            "syncedCount": syncedCount,
+            "newSyncFormations": newSyncFormations
+        ]
+
+        WCSession.default.sendMessage(message, replyHandler: nil) { error in
+            Log.watchConnectivity.debug("Room update send failed: \(error.localizedDescription)")
+        }
+    }
 }

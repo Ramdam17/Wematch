@@ -12,8 +12,13 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
     // MARK: - State
 
     private(set) var isReachable = false
-    private var messageContinuation: AsyncStream<[String: Any]>.Continuation?
+
+    // Command stream (enterRoom / exitRoom)
+    private var commandContinuation: AsyncStream<[String: Any]>.Continuation?
     private var _receivedMessages: AsyncStream<[String: Any]>?
+
+    /// Set by WatchRoomViewModel to receive room updates from iPhone.
+    var roomUpdateHandler: ((WatchRoomUpdate) -> Void)?
 
     private override init() {
         super.init()
@@ -50,16 +55,14 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
         }
     }
 
-    // MARK: - Receiving Messages from iPhone
+    // MARK: - Receiving Commands from iPhone
 
     var receivedMessages: AsyncStream<[String: Any]> {
         if let existing = _receivedMessages { return existing }
 
         let stream = AsyncStream<[String: Any]> { continuation in
-            self.messageContinuation = continuation
-            continuation.onTermination = { @Sendable _ in
-                // Stream terminated
-            }
+            self.commandContinuation = continuation
+            continuation.onTermination = { @Sendable _ in }
         }
         _receivedMessages = stream
         return stream
@@ -81,18 +84,28 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        if let type = message["type"] as? String {
-            logger.debug("Received message: \(type)")
-        }
-        messageContinuation?.yield(message)
+        handleIncomingMessage(message)
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        if let type = message["type"] as? String {
-            logger.debug("Received message (with reply): \(type)")
-        }
-        messageContinuation?.yield(message)
+        handleIncomingMessage(message)
         replyHandler(["status": "received"])
+    }
+
+    private func handleIncomingMessage(_ message: [String: Any]) {
+        guard let type = message["type"] as? String else { return }
+
+        switch type {
+        case "roomUpdate":
+            if let update = WatchRoomUpdate(from: message) {
+                DispatchQueue.main.async { [weak self] in
+                    self?.roomUpdateHandler?(update)
+                }
+            }
+        default:
+            logger.debug("Received command: \(type)")
+            commandContinuation?.yield(message)
+        }
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
