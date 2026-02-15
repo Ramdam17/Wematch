@@ -18,19 +18,24 @@ struct GroupDetailView: View {
         ZStack {
             AnimatedBackground()
 
-            ScrollView {
-                VStack(spacing: WematchTheme.paddingMedium) {
-                    headerSection
-                    membersSection
+            if viewModel.isLoading {
+                ProgressView()
+                    .tint(Color(hex: "C084FC"))
+            } else {
+                ScrollView {
+                    VStack(spacing: WematchTheme.paddingMedium) {
+                        headerSection
+                        membersSection
 
-                    if viewModel.isAdmin && !viewModel.joinRequests.isEmpty {
-                        requestsSection
+                        if viewModel.isAdmin && !viewModel.joinRequests.isEmpty {
+                            requestsSection
+                        }
+
+                        enterRoomSection
+                        actionsSection
                     }
-
-                    enterRoomSection
-                    actionsSection
+                    .padding()
                 }
-                .padding()
             }
         }
         .navigationTitle(viewModel.group.name)
@@ -103,6 +108,8 @@ struct GroupDetailView: View {
                             .foregroundStyle(Color(hex: "C084FC"))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Copy join code")
+                    .accessibilityHint("Copies the code to clipboard")
                 }
             }
         }

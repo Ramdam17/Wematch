@@ -4,6 +4,8 @@ struct JoinGroupSheet: View {
     @Environment(\.dismiss) private var dismiss
     let authManager: AuthenticationManager
 
+    @ScaledMetric(relativeTo: .title) private var iconSize = 40
+    @ScaledMetric(relativeTo: .title) private var successIconSize = 48
     @State private var joinCode = ""
     @State private var isLoading = false
     @State private var error: Error?
@@ -62,8 +64,9 @@ struct JoinGroupSheet: View {
         GlassCard {
             VStack(spacing: WematchTheme.paddingMedium) {
                 Image(systemName: "number")
-                    .font(.system(size: 40))
+                    .font(.system(size: iconSize))
                     .foregroundStyle(Color(hex: "67E8F9").gradient)
+                    .accessibilityHidden(true)
 
                 Text("Enter a group code")
                     .font(WematchTypography.headline)
@@ -76,11 +79,16 @@ struct JoinGroupSheet: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.characters)
 
-                GradientButton("Join") {
-                    Task { await sendJoinRequest() }
+                if isLoading {
+                    ProgressView()
+                        .tint(Color(hex: "C084FC"))
+                } else {
+                    GradientButton("Join") {
+                        Task { await sendJoinRequest() }
+                    }
+                    .disabled(joinCode.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
+                    .opacity(joinCode.trimmingCharacters(in: .whitespacesAndNewlines).count < 6 ? 0.5 : 1)
                 }
-                .disabled(joinCode.trimmingCharacters(in: .whitespacesAndNewlines).count < 6 || isLoading)
-                .opacity(joinCode.trimmingCharacters(in: .whitespacesAndNewlines).count < 6 ? 0.5 : 1)
             }
         }
     }
@@ -89,8 +97,9 @@ struct JoinGroupSheet: View {
         GlassCard {
             VStack(spacing: WematchTheme.paddingMedium) {
                 Image(systemName: "paperplane.circle.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: successIconSize))
                     .foregroundStyle(.green)
+                    .accessibilityHidden(true)
 
                 Text("Request Sent!")
                     .font(WematchTypography.title2)

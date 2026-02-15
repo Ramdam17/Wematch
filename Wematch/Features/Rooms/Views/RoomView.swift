@@ -115,6 +115,9 @@ struct RoomView: View {
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(WematchTheme.textSecondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Heart rate")
+                .accessibilityValue("\(Int(viewModel.ownHeartRate)) beats per minute")
 
                 Spacer()
 
@@ -130,6 +133,9 @@ struct RoomView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(WematchTheme.textSecondary)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Participants")
+                .accessibilityValue("\(viewModel.allParticipantsForPlot.count)")
 
                 // Leave button
                 Button {
@@ -141,6 +147,8 @@ struct RoomView: View {
                         .padding(8)
                         .background(.ultraThinMaterial, in: Circle())
                 }
+                .accessibilityLabel("Leave room")
+                .accessibilityHint("Exits the room and returns to the list")
             }
         }
     }
@@ -180,6 +188,16 @@ struct RoomView: View {
         .contentTransition(.numericText())
         .animation(.easeInOut(duration: 0.3), value: maxChain)
         .animation(.easeInOut(duration: 0.3), value: syncedIDs.count)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sync stats")
+        .accessibilityValue(syncAccessibilityValue(maxChain: maxChain, syncedCount: syncedIDs.count))
+    }
+
+    private func syncAccessibilityValue(maxChain: Int, syncedCount: Int) -> String {
+        var parts: [String] = []
+        if maxChain > 0 { parts.append("chain of \(maxChain)") }
+        if syncedCount >= 2 { parts.append("\(syncedCount) synced") }
+        return parts.isEmpty ? "No sync" : parts.joined(separator: ", ")
     }
 
     // MARK: - Actions

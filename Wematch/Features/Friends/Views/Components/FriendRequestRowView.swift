@@ -35,6 +35,7 @@ struct FriendRequestRowView: View {
                             .foregroundStyle(.green)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Accept request")
 
                     Button {
                         onDecline?()
@@ -44,6 +45,7 @@ struct FriendRequestRowView: View {
                             .foregroundStyle(.red.opacity(0.7))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Decline request")
                 }
             } else {
                 Button {

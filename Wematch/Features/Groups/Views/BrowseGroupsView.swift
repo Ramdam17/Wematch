@@ -17,7 +17,10 @@ struct BrowseGroupsView: View {
 
             if searchText.isEmpty {
                 promptView
-            } else if searchResults.isEmpty && !isSearching {
+            } else if isSearching {
+                ProgressView()
+                    .tint(Color(hex: "C084FC"))
+            } else if searchResults.isEmpty {
                 noResultsView
             } else {
                 resultsList
@@ -41,25 +44,19 @@ struct BrowseGroupsView: View {
     // MARK: - Subviews
 
     private var promptView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 40))
-                .foregroundStyle(WematchTheme.textSecondary)
-            Text("Search for groups by name")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-        }
+        EmptyStateView(
+            icon: "magnifyingglass",
+            iconColor: WematchTheme.textSecondary,
+            title: "Search for groups by name"
+        )
     }
 
     private var noResultsView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "questionmark.circle")
-                .font(.system(size: 40))
-                .foregroundStyle(WematchTheme.textSecondary)
-            Text("No groups found")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-        }
+        EmptyStateView(
+            icon: "questionmark.circle",
+            iconColor: WematchTheme.textSecondary,
+            title: "No groups found"
+        )
     }
 
     private var resultsList: some View {

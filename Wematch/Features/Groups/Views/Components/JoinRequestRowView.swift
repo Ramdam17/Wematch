@@ -32,6 +32,7 @@ struct JoinRequestRowView: View {
                         .foregroundStyle(.green)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Accept request")
 
                 Button {
                     onDecline()
@@ -41,6 +42,7 @@ struct JoinRequestRowView: View {
                         .foregroundStyle(.red.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Decline request")
             }
         }
         .padding(.vertical, 4)

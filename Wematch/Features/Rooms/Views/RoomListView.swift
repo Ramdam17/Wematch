@@ -41,6 +41,7 @@ struct RoomListView: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             HeartIcon(color: Color(hex: "FF6B9D"), size: 48, showGlow: true)
+                .accessibilityHidden(true)
             Text("No Rooms Yet")
                 .font(WematchTypography.title2)
                 .foregroundStyle(WematchTheme.textPrimary)
@@ -49,6 +50,7 @@ struct RoomListView: View {
                 .foregroundStyle(WematchTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Rooms List

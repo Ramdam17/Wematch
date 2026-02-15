@@ -5,7 +5,6 @@ struct GroupListView: View {
     @State private var viewModel: GroupListViewModel?
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
-
     var body: some View {
         ZStack {
             AnimatedBackground()
@@ -27,12 +26,14 @@ struct GroupListView: View {
                     } label: {
                         Image(systemName: "person.badge.plus")
                     }
+                    .accessibilityLabel("Join a group")
 
                     Button {
                         showCreateSheet = true
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Create a group")
                 }
             }
         }
@@ -68,18 +69,12 @@ struct GroupListView: View {
     // MARK: - Subviews
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "person.3.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(Color(hex: "C084FC").gradient)
-            Text("No Groups Yet")
-                .font(WematchTypography.title2)
-                .foregroundStyle(WematchTheme.textPrimary)
-            Text("Create or join a group to start syncing")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-                .multilineTextAlignment(.center)
-        }
+        EmptyStateView(
+            icon: "person.3.fill",
+            iconColor: Color(hex: "C084FC"),
+            title: "No Groups Yet",
+            subtitle: "Create or join a group to start syncing"
+        )
     }
 
     private func groupsList(viewModel: GroupListViewModel) -> some View {

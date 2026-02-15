@@ -14,6 +14,7 @@ struct AnimatedBackground: View {
             FloatingParticlesView()
         }
         .ignoresSafeArea()
+        .accessibilityHidden(true)
         .onAppear {
             withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true)) {
                 animate.toggle()

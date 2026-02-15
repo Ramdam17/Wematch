@@ -3,7 +3,6 @@ import SwiftUI
 struct UserSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: UserSearchViewModel
-
     init(authManager: AuthenticationManager) {
         self._viewModel = State(initialValue: UserSearchViewModel(authManager: authManager))
     }
@@ -15,7 +14,10 @@ struct UserSearchSheet: View {
 
                 if viewModel.searchText.isEmpty {
                     promptView
-                } else if viewModel.results.isEmpty && !viewModel.isSearching {
+                } else if viewModel.isSearching {
+                    ProgressView()
+                        .tint(Color(hex: "C084FC"))
+                } else if viewModel.results.isEmpty {
                     noResultsView
                 } else {
                     resultsList
@@ -49,25 +51,19 @@ struct UserSearchSheet: View {
     // MARK: - Subviews
 
     private var promptView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 40))
-                .foregroundStyle(WematchTheme.textSecondary)
-            Text("Search for users by username")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-        }
+        EmptyStateView(
+            icon: "magnifyingglass",
+            iconColor: WematchTheme.textSecondary,
+            title: "Search for users by username"
+        )
     }
 
     private var noResultsView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "person.slash")
-                .font(.system(size: 40))
-                .foregroundStyle(WematchTheme.textSecondary)
-            Text("No users found")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-        }
+        EmptyStateView(
+            icon: "person.slash",
+            iconColor: WematchTheme.textSecondary,
+            title: "No users found"
+        )
     }
 
     private var resultsList: some View {

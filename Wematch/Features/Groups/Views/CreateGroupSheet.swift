@@ -3,6 +3,8 @@ import SwiftUI
 struct CreateGroupSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: CreateGroupViewModel
+    @ScaledMetric(relativeTo: .title) private var iconSize = 40
+    @ScaledMetric(relativeTo: .title) private var successIconSize = 48
     var onGroupCreated: (() -> Void)?
 
     init(authManager: AuthenticationManager, onGroupCreated: (() -> Void)? = nil) {
@@ -52,24 +54,30 @@ struct CreateGroupSheet: View {
         GlassCard {
             VStack(spacing: WematchTheme.paddingMedium) {
                 Image(systemName: "person.3.fill")
-                    .font(.system(size: 40))
+                    .font(.system(size: iconSize))
                     .foregroundStyle(Color(hex: "C084FC").gradient)
+                    .accessibilityHidden(true)
 
                 TextField("Group name", text: $viewModel.name)
                     .font(WematchTypography.body)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
 
-                GradientButton("Create") {
-                    Task {
-                        await viewModel.createGroup()
-                        if viewModel.createdGroup != nil {
-                            onGroupCreated?()
+                if viewModel.isLoading {
+                    ProgressView()
+                        .tint(Color(hex: "C084FC"))
+                } else {
+                    GradientButton("Create") {
+                        Task {
+                            await viewModel.createGroup()
+                            if viewModel.createdGroup != nil {
+                                onGroupCreated?()
+                            }
                         }
                     }
+                    .disabled(viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity(viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
                 }
-                .disabled(viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
-                .opacity(viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
             }
         }
     }
@@ -78,8 +86,9 @@ struct CreateGroupSheet: View {
         GlassCard {
             VStack(spacing: WematchTheme.paddingMedium) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: successIconSize))
                     .foregroundStyle(.green)
+                    .accessibilityHidden(true)
 
                 Text(group.name)
                     .font(WematchTypography.title2)

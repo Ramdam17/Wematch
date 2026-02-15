@@ -38,6 +38,7 @@ struct MemberRowView: View {
                         .foregroundStyle(.red.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Remove \(profile.username)")
             }
         }
         .padding(.vertical, 4)

@@ -16,6 +16,7 @@ struct HeartPlotView: View {
             ZStack {
                 // Layer 1: Static grid
                 PlotGridCanvas(insets: plotInsets)
+                    .accessibilityHidden(true)
 
                 // Layer 2: Stars (behind hearts)
                 ForEach(activeStars) { star in
@@ -24,6 +25,7 @@ struct HeartPlotView: View {
                             x: star.position.x * size.width,
                             y: star.position.y * size.height
                         )
+                        .accessibilityHidden(true)
                 }
 
                 // Layer 3: Cluster circles
@@ -34,6 +36,7 @@ struct HeartPlotView: View {
                         plotSize: size,
                         plotInsets: plotInsets
                     )
+                    .accessibilityHidden(true)
                 }
 
                 ForEach(syncGraph.hardClusters) { cluster in
@@ -43,6 +46,7 @@ struct HeartPlotView: View {
                         plotSize: size,
                         plotInsets: plotInsets
                     )
+                    .accessibilityHidden(true)
                 }
 
                 // Layer 4: Heart markers (on top)
@@ -59,8 +63,11 @@ struct HeartPlotView: View {
                         targetPosition: pos,
                         isOwnHeart: participant.id == currentUserID
                     )
+                    .accessibilityHidden(true)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Heart rate plot with \(participants.count) participants")
         }
     }
 }

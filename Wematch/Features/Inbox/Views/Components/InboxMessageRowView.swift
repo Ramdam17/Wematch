@@ -66,6 +66,7 @@ struct InboxMessageRowView: View {
                         .foregroundStyle(.green)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Accept")
 
                 Button {
                     onAction?(.decline)
@@ -75,6 +76,7 @@ struct InboxMessageRowView: View {
                         .foregroundStyle(.red.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Decline")
             }
         }
     }

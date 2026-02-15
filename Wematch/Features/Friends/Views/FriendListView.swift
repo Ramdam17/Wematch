@@ -12,7 +12,6 @@ struct FriendListView: View {
     @State private var showSearchSheet = false
     @State private var showRoom = false
     @State private var roomNavInfo: (roomID: String, roomName: String)?
-
     var body: some View {
         ZStack {
             AnimatedBackground()
@@ -52,6 +51,7 @@ struct FriendListView: View {
                 } label: {
                     Image(systemName: "person.badge.plus")
                 }
+                .accessibilityLabel("Add a friend")
             }
         }
         .sheet(isPresented: $showSearchSheet) {
@@ -91,17 +91,12 @@ struct FriendListView: View {
     private var friendsContent: some View {
         if let viewModel, viewModel.friends.isEmpty && !viewModel.isLoading {
             Spacer()
-            VStack(spacing: 16) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color(hex: "67E8F9").gradient)
-                Text("No Friends Yet")
-                    .font(WematchTypography.title2)
-                    .foregroundStyle(WematchTheme.textPrimary)
-                Text("Tap + to find and add friends")
-                    .font(WematchTypography.body)
-                    .foregroundStyle(WematchTheme.textSecondary)
-            }
+            EmptyStateView(
+                icon: "person.2.fill",
+                iconColor: Color(hex: "67E8F9"),
+                title: "No Friends Yet",
+                subtitle: "Tap + to find and add friends"
+            )
             Spacer()
         } else if let viewModel {
             ScrollView {
@@ -132,14 +127,11 @@ struct FriendListView: View {
     private var requestsContent: some View {
         if let viewModel, viewModel.incomingRequests.isEmpty && viewModel.outgoingRequests.isEmpty {
             Spacer()
-            VStack(spacing: 16) {
-                Image(systemName: "envelope.open")
-                    .font(.system(size: 48))
-                    .foregroundStyle(WematchTheme.textSecondary)
-                Text("No Pending Requests")
-                    .font(WematchTypography.title2)
-                    .foregroundStyle(WematchTheme.textPrimary)
-            }
+            EmptyStateView(
+                icon: "envelope.open",
+                iconColor: WematchTheme.textSecondary,
+                title: "No Pending Requests"
+            )
             Spacer()
         } else if let viewModel {
             ScrollView {

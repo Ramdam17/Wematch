@@ -6,7 +6,6 @@ struct InboxListView: View {
     @Binding var unreadCount: Int
     @State private var showRoom = false
     @State private var roomNavInfo: (roomID: String, roomName: String)?
-
     var body: some View {
         ZStack {
             AnimatedBackground()
@@ -33,6 +32,7 @@ struct InboxListView: View {
                     } label: {
                         Image(systemName: "envelope.open")
                     }
+                    .accessibilityLabel("Mark all as read")
                 }
             }
         }
@@ -70,18 +70,12 @@ struct InboxListView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "envelope.open")
-                .font(.system(size: 48))
-                .foregroundStyle(Color(hex: "FBBF24").gradient)
-            Text("No Messages")
-                .font(WematchTypography.title2)
-                .foregroundStyle(WematchTheme.textPrimary)
-            Text("Notifications and requests will appear here")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-                .multilineTextAlignment(.center)
-        }
+        EmptyStateView(
+            icon: "envelope.open",
+            iconColor: Color(hex: "FBBF24"),
+            title: "No Messages",
+            subtitle: "Notifications and requests will appear here"
+        )
     }
 
     // MARK: - Messages List

@@ -34,6 +34,8 @@ struct FriendRowView: View {
                             .foregroundStyle(WematchTheme.primaryGradient)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Start room with \(profile.username)")
+                    .accessibilityHint("Opens a 1-on-1 heart rate room")
                 }
 
                 StatusBadge(text: "Friends", style: .friends)

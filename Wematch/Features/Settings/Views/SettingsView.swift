@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AuthenticationManager.self) private var authManager
     @State private var viewModel: SettingsViewModel?
+    @ScaledMetric(relativeTo: .largeTitle) private var profileIconSize = 56
+    @ScaledMetric(relativeTo: .title) private var dashboardIconSize = 24
 
     var body: some View {
         ZStack {
@@ -70,8 +72,9 @@ struct SettingsView: View {
         GlassCard {
             VStack(spacing: 12) {
                 Image(systemName: "person.circle.fill")
-                    .font(.system(size: 56))
+                    .font(.system(size: profileIconSize))
                     .foregroundStyle(Color(hex: "A78BFA").gradient)
+                    .accessibilityHidden(true)
 
                 Text(viewModel.username)
                     .font(WematchTypography.title2)
@@ -94,7 +97,7 @@ struct SettingsView: View {
             GlassCard {
                 HStack {
                     Image(systemName: "chart.xyaxis.line")
-                        .font(.system(size: 24))
+                        .font(.system(size: dashboardIconSize))
                         .foregroundStyle(Color(hex: "F472B6").gradient)
 
                     VStack(alignment: .leading, spacing: 4) {
