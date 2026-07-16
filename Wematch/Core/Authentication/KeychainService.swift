@@ -8,7 +8,29 @@ enum KeychainError: Error {
     case unexpectedData
 }
 
-struct KeychainService: Sendable {
+/// Abstraction over keychain storage so consumers (e.g. AuthenticationManager)
+/// can be tested with an in-memory implementation instead of the real OS keychain.
+protocol KeychainStoring: Sendable {
+    func save(key: String, value: String) throws
+    func retrieve(key: String) -> String?
+    func delete(key: String) throws
+}
+
+struct KeychainService: Sendable, KeychainStoring {
+
+    // MARK: - KeychainStoring
+
+    func save(key: String, value: String) throws {
+        try Self.save(key: key, value: value)
+    }
+
+    func retrieve(key: String) -> String? {
+        Self.retrieve(key: key)
+    }
+
+    func delete(key: String) throws {
+        try Self.delete(key: key)
+    }
 
     private static let service = "com.remyramadour.Wematch"
 

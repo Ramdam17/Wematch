@@ -27,6 +27,7 @@ final class AuthenticationManager {
     private let repository: any UserProfileRepository
     private let coordinator: SignInWithAppleCoordinator
     private let usernameGenerator: UsernameGenerator
+    private let keychain: any KeychainStoring
     private var storedUserID: String?
 
     private static let keychainKey = "appleUserID"
@@ -35,16 +36,18 @@ final class AuthenticationManager {
 
     init(repository: (any UserProfileRepository)? = nil,
          coordinator: SignInWithAppleCoordinator? = nil,
-         usernameGenerator: UsernameGenerator? = nil) {
+         usernameGenerator: UsernameGenerator? = nil,
+         keychain: (any KeychainStoring)? = nil) {
         self.repository = repository ?? CloudKitUserProfileRepository()
         self.coordinator = coordinator ?? SignInWithAppleCoordinator()
         self.usernameGenerator = usernameGenerator ?? UsernameGenerator()
+        self.keychain = keychain ?? KeychainService()
     }
 
     // MARK: - Session Restoration
 
     func restoreSession() async {
-        guard let userID = KeychainService.retrieve(key: Self.keychainKey) else {
+        guard let userID = keychain.retrieve(key: Self.keychainKey) else {
             Log.auth.info("No stored session found")
             authState = .signedOut
             return
@@ -78,7 +81,7 @@ final class AuthenticationManager {
         do {
             let userID = try await coordinator.signIn()
             storedUserID = userID
-            try KeychainService.save(key: Self.keychainKey, value: userID)
+            try keychain.save(key: Self.keychainKey, value: userID)
 
             if let profile = try await repository.fetchProfile(userID: userID) {
                 userProfile = profile
@@ -142,7 +145,7 @@ final class AuthenticationManager {
 
     func signOut() {
         do {
-            try KeychainService.delete(key: Self.keychainKey)
+            try keychain.delete(key: Self.keychainKey)
         } catch {
             Log.auth.error("Failed to clear keychain: \(error.localizedDescription)")
         }

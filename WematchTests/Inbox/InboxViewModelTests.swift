@@ -98,6 +98,7 @@ final class InboxViewModelTests: XCTestCase {
     private var mockFriendRepo: MockInboxFriendRepository!
     private var mockProfileRepo: MockUserProfileRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
+    private var keychain: InMemoryKeychain!
     private var authManager: AuthenticationManager!
     private var viewModel: InboxViewModel!
 
@@ -108,19 +109,16 @@ final class InboxViewModelTests: XCTestCase {
         mockFriendRepo = MockInboxFriendRepository()
         mockProfileRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
+        keychain = InMemoryKeychain()
         authManager = AuthenticationManager(
             repository: mockProfileRepo,
-            coordinator: mockCoordinator
+            coordinator: mockCoordinator,
+            keychain: keychain
         )
     }
 
-    override func tearDown() {
-        try? KeychainService.delete(key: "appleUserID")
-        super.tearDown()
-    }
-
     private func signInUser(id: String = "test_user") async {
-        try? KeychainService.save(key: "appleUserID", value: id)
+        try? keychain.save(key: "appleUserID", value: id)
         mockProfileRepo.profiles[id] = UserProfile(
             id: id, username: "user_\(id)", displayName: nil,
             createdAt: Date(), usernameEdited: false
