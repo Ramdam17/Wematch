@@ -103,14 +103,18 @@ final class RoomViewModel {
         var result = participants
 
         // Add self if not already in Firebase participants (edge case during join)
-        if let userID = currentUserID, !result.contains(where: { $0.id == userID }), ownHeartRate > 0 {
-            result.append(RoomParticipant(
-                id: userID,
-                username: currentUsername,
-                currentHR: ownHeartRate,
-                previousHR: previousHeartRate,
-                color: assignedColor
-            ))
+        // Note: Firebase stores IDs as firebaseSafe() (dots → underscores), so we must compare using the safe version
+        if let userID = currentUserID {
+            let safeUserID = userID.firebaseSafe()
+            if !result.contains(where: { $0.id == safeUserID }), ownHeartRate > 0 {
+                result.append(RoomParticipant(
+                    id: safeUserID,
+                    username: currentUsername,
+                    currentHR: ownHeartRate,
+                    previousHR: previousHeartRate,
+                    color: assignedColor
+                ))
+            }
         }
 
         #if targetEnvironment(simulator)
