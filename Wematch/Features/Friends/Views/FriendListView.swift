@@ -68,7 +68,7 @@ struct FriendListView: View {
         .refreshable {
             await viewModel?.fetchAll()
         }
-        .onChange(of: viewModel?.pendingRoomNavigation?.roomID) { _, newValue in
+        .onChange(of: viewModel?.pendingRoomNavigation?.roomID) { _, _ in
             if let nav = viewModel?.pendingRoomNavigation {
                 roomNavInfo = nav
                 showRoom = true

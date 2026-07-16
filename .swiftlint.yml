@@ -1,0 +1,62 @@
+# SwiftLint — Wematch
+# Baseline aligned with existing conventions (see root CLAUDE.md).
+
+included:
+  - Wematch
+  - WematchWatch Watch App
+  - WematchShared
+  - WematchTests
+
+excluded:
+  - Wematch/Assets.xcassets
+  - DerivedData
+  - .build
+
+# Existing code is disciplined; keep the config strict but pragmatic.
+disabled_rules:
+  - todo                      # TODOs are tracked in Docs/plans, not banned in code
+  - trailing_whitespace       # cosmetic noise; Xcode handles it
+  - trailing_comma            # existing style uses trailing commas consistently
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - contains_over_first_not_nil
+  - fatal_error_message
+  - first_where
+  - force_unwrapping          # CLAUDE.md: no force unwraps outside tests/previews
+  - implicitly_unwrapped_optional
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+
+force_unwrapping:
+  severity: error
+
+line_length:
+  warning: 140
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 400   # RoomViewModel is 440 lines (audit H3) — tighten to 300 after plan 3c
+  error: 600
+
+file_length:
+  warning: 500
+  error: 800
+
+function_body_length:
+  warning: 60
+  error: 100
+
+identifier_name:
+  min_length: 2
+  excluded: [x, y, i, j, r, p, a, b, c, d, e, t, g, f]   # math/graph/color code (SyncGraph, Bezier, Color+Hex)
+
+cyclomatic_complexity:
+  warning: 12
+
+nesting:
+  type_level: 2

@@ -1,0 +1,5 @@
+# Test-specific overrides (child config, merged with root .swiftlint.yml)
+disabled_rules:
+  - implicitly_unwrapped_optional   # `var sut: T!` + setUp() is the idiomatic XCTest pattern
+  - large_tuple                     # spy recordings use small named tuples
+  - force_unwrapping                # allowed in tests per project rules

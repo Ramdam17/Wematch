@@ -24,7 +24,7 @@ struct WatchHeartMarkerView: View {
     var body: some View {
         WatchHeartIcon(color: color, size: heartSize, showGlow: isOwnHeart)
             .watchBezierPosition(path: bezierPath, progress: progress)
-            .onChange(of: targetPosition) { oldPos, newPos in
+            .onChange(of: targetPosition) { _, newPos in
                 let currentAnimatedPos = bezierPath.point(at: progress)
                 let newPath = WatchBezierPath.curved(from: currentAnimatedPos, to: newPos)
 

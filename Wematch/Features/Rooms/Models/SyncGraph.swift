@@ -151,8 +151,11 @@ struct SyncGraph: Sendable {
         }
 
         // Pick pivot: node in P ∪ X with most connections to P
+        // (union is non-empty here: the p.isEmpty && x.isEmpty case returned above)
         let union = p.union(x)
-        let pivot = union.max { adj[$0, default: []].intersection(p).count < adj[$1, default: []].intersection(p).count }!
+        guard let pivot = union.max(by: {
+            adj[$0, default: []].intersection(p).count < adj[$1, default: []].intersection(p).count
+        }) else { return }
 
         let candidates = p.subtracting(adj[pivot, default: []])
 
@@ -208,10 +211,8 @@ struct SyncGraph: Sendable {
     var syncedPairs: Set<SyncPair> {
         var pairs = Set<SyncPair>()
         for i in participants.indices {
-            for j in (i + 1)..<participants.count {
-                if isEdge(participants[i], participants[j]) {
-                    pairs.insert(SyncPair(participants[i].id, participants[j].id))
-                }
+            for j in (i + 1)..<participants.count where isEdge(participants[i], participants[j]) {
+                pairs.insert(SyncPair(participants[i].id, participants[j].id))
             }
         }
         return pairs
