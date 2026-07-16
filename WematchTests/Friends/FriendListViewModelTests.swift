@@ -72,6 +72,12 @@ final class MockFriendRepository: FriendRepository {
             $0.username.localizedCaseInsensitiveContains(query)
         }
     }
+
+    func deleteAllFriendData(userID: String) async throws {
+        friendships.removeAll { $0.userID1 == userID || $0.userID2 == userID }
+        incomingRequests.removeAll { $0.receiverID == userID }
+        outgoingRequests.removeAll { $0.senderID == userID }
+    }
 }
 
 // MARK: - Mock Inbox Repository

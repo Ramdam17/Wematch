@@ -63,6 +63,16 @@ final class MockGroupRepository: GroupRepository {
             groups[idx].memberIDs.removeAll { $0 == userID }
         }
     }
+
+    func fetchAdminGroups(userID: String) async throws -> [Group] {
+        groups.filter { $0.adminID == userID }
+    }
+
+    func removeUserFromAllGroups(userID: String) async throws {
+        for idx in groups.indices {
+            groups[idx].memberIDs.removeAll { $0 == userID }
+        }
+    }
 }
 
 // MARK: - Tests

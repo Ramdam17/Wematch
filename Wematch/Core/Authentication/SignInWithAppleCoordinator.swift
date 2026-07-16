@@ -19,7 +19,8 @@ enum AuthenticationError: LocalizedError {
     }
 }
 
-final class SignInWithAppleCoordinator: NSObject, @unchecked Sendable {
+// Not final: WematchTests subclasses this (via @testable) to stub signIn().
+class SignInWithAppleCoordinator: NSObject, @unchecked Sendable {
 
     private var continuation: CheckedContinuation<String, Error>?
 

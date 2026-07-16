@@ -18,6 +18,10 @@ final class MockUserProfileRepository: UserProfileRepository {
     func isUsernameAvailable(_ username: String) async throws -> Bool {
         !takenUsernames.contains(username)
     }
+
+    func deleteProfile(userID: String) async throws {
+        profiles[userID] = nil
+    }
 }
 
 final class MockSignInWithAppleCoordinator: SignInWithAppleCoordinator {

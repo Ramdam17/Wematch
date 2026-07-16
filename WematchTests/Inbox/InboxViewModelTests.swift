@@ -36,6 +36,10 @@ final class MockInboxRepository: InboxRepository {
     func unreadCount(userID: String) async throws -> Int {
         messages.filter { $0.recipientID == userID && !$0.isRead }.count
     }
+
+    func deleteAllMessages(userID: String) async throws {
+        messages.removeAll { $0.recipientID == userID }
+    }
 }
 
 // MARK: - Mock Group Repository (for inbox actions)
@@ -62,6 +66,8 @@ final class MockInboxGroupRepository: GroupRepository {
     }
     func leaveGroup(groupID: String, userID: String) async throws {}
     func removeMember(groupID: String, userID: String) async throws {}
+    func fetchAdminGroups(userID: String) async throws -> [Group] { [] }
+    func removeUserFromAllGroups(userID: String) async throws {}
 }
 
 // MARK: - Mock Friend Repository (for inbox actions)
@@ -86,6 +92,7 @@ final class MockInboxFriendRepository: FriendRepository {
     }
     func cancelFriendRequest(requestID: String) async throws {}
     func searchUsers(query: String, excludingUserID: String) async throws -> [UserProfile] { [] }
+    func deleteAllFriendData(userID: String) async throws {}
 }
 
 // MARK: - Tests
