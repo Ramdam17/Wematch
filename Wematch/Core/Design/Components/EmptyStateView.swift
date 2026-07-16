@@ -4,7 +4,7 @@ struct EmptyStateView: View {
     let icon: String
     let iconColor: Color
     let title: String
-    var subtitle: String? = nil
+    var subtitle: String?
 
     @ScaledMetric(relativeTo: .title) private var iconSize: CGFloat = 48
 

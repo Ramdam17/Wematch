@@ -36,6 +36,10 @@ final class MockInboxRepository: InboxRepository {
     func unreadCount(userID: String) async throws -> Int {
         messages.filter { $0.recipientID == userID && !$0.isRead }.count
     }
+
+    func deleteAllMessages(userID: String) async throws {
+        messages.removeAll { $0.recipientID == userID }
+    }
 }
 
 // MARK: - Mock Group Repository (for inbox actions)
@@ -62,6 +66,8 @@ final class MockInboxGroupRepository: GroupRepository {
     }
     func leaveGroup(groupID: String, userID: String) async throws {}
     func removeMember(groupID: String, userID: String) async throws {}
+    func fetchAdminGroups(userID: String) async throws -> [Group] { [] }
+    func removeUserFromAllGroups(userID: String) async throws {}
 }
 
 // MARK: - Mock Friend Repository (for inbox actions)
@@ -86,6 +92,7 @@ final class MockInboxFriendRepository: FriendRepository {
     }
     func cancelFriendRequest(requestID: String) async throws {}
     func searchUsers(query: String, excludingUserID: String) async throws -> [UserProfile] { [] }
+    func deleteAllFriendData(userID: String) async throws {}
 }
 
 // MARK: - Tests
@@ -98,6 +105,7 @@ final class InboxViewModelTests: XCTestCase {
     private var mockFriendRepo: MockInboxFriendRepository!
     private var mockProfileRepo: MockUserProfileRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
+    private var keychain: InMemoryKeychain!
     private var authManager: AuthenticationManager!
     private var viewModel: InboxViewModel!
 
@@ -108,19 +116,16 @@ final class InboxViewModelTests: XCTestCase {
         mockFriendRepo = MockInboxFriendRepository()
         mockProfileRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
+        keychain = InMemoryKeychain()
         authManager = AuthenticationManager(
             repository: mockProfileRepo,
-            coordinator: mockCoordinator
+            coordinator: mockCoordinator,
+            keychain: keychain
         )
     }
 
-    override func tearDown() {
-        try? KeychainService.delete(key: "appleUserID")
-        super.tearDown()
-    }
-
     private func signInUser(id: String = "test_user") async {
-        try? KeychainService.save(key: "appleUserID", value: id)
+        try? keychain.save(key: "appleUserID", value: id)
         mockProfileRepo.profiles[id] = UserProfile(
             id: id, username: "user_\(id)", displayName: nil,
             createdAt: Date(), usernameEdited: false

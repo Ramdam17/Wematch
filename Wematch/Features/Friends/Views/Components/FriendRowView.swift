@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FriendRowView: View {
     let profile: UserProfile
-    var onStartRoom: (() -> Void)? = nil
+    var onStartRoom: (() -> Void)?
 
     var body: some View {
         GlassCard {

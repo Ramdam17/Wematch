@@ -34,7 +34,7 @@ struct HeartMarkerView: View {
                 .frame(maxWidth: 60)
         }
         .bezierPosition(path: bezierPath, progress: progress)
-        .onChange(of: targetPosition) { oldPos, newPos in
+        .onChange(of: targetPosition) { _, newPos in
             // Compute current animated position as the start of the new curve
             let currentAnimatedPos = bezierPath.point(at: progress)
             let newPath = BezierPath.curved(from: currentAnimatedPos, to: newPos)

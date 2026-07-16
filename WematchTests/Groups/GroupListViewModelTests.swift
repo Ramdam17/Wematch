@@ -63,6 +63,16 @@ final class MockGroupRepository: GroupRepository {
             groups[idx].memberIDs.removeAll { $0 == userID }
         }
     }
+
+    func fetchAdminGroups(userID: String) async throws -> [Group] {
+        groups.filter { $0.adminID == userID }
+    }
+
+    func removeUserFromAllGroups(userID: String) async throws {
+        for idx in groups.indices {
+            groups[idx].memberIDs.removeAll { $0 == userID }
+        }
+    }
 }
 
 // MARK: - Tests
@@ -73,6 +83,7 @@ final class GroupListViewModelTests: XCTestCase {
     private var mockRepo: MockGroupRepository!
     private var mockProfileRepo: MockUserProfileRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
+    private var keychain: InMemoryKeychain!
     private var authManager: AuthenticationManager!
     private var viewModel: GroupListViewModel!
 
@@ -81,19 +92,16 @@ final class GroupListViewModelTests: XCTestCase {
         mockRepo = MockGroupRepository()
         mockProfileRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
+        keychain = InMemoryKeychain()
         authManager = AuthenticationManager(
             repository: mockProfileRepo,
-            coordinator: mockCoordinator
+            coordinator: mockCoordinator,
+            keychain: keychain
         )
     }
 
-    override func tearDown() {
-        try? KeychainService.delete(key: "appleUserID")
-        super.tearDown()
-    }
-
     private func signInUser(id: String = "test_user") async {
-        try? KeychainService.save(key: "appleUserID", value: id)
+        try? keychain.save(key: "appleUserID", value: id)
         mockProfileRepo.profiles[id] = UserProfile(
             id: id, username: "test_\(id)", displayName: nil,
             createdAt: Date(), usernameEdited: false

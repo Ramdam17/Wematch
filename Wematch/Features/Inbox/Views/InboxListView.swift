@@ -50,7 +50,7 @@ struct InboxListView: View {
         .onChange(of: viewModel?.unreadCount) { _, newValue in
             unreadCount = newValue ?? 0
         }
-        .onChange(of: viewModel?.pendingRoomNavigation?.roomID) { _, newValue in
+        .onChange(of: viewModel?.pendingRoomNavigation?.roomID) { _, _ in
             if let nav = viewModel?.pendingRoomNavigation {
                 roomNavInfo = nav
                 showRoom = true

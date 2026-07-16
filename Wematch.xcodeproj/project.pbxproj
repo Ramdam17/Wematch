@@ -11,9 +11,17 @@
 		A59A72872F3D875500EED109 /* WematchShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; };
 		A59A72882F3D875500EED109 /* WematchShared.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A59A728F2F3D887000EED109 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = A59A728E2F3D887000EED109 /* FirebaseDatabase */; };
+		AEBD55F8A9F8C4F491AF479B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92F56A9B3041CF94B7ED9A71 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		117682ABF8743248B219BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A59A71E12F3D725D00EED109;
+			remoteInfo = Wematch;
+		};
 		A59A726C2F3D86B100EED109 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A59A71DA2F3D725D00EED109 /* Project object */;
@@ -66,6 +74,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		536C3397C63FF68E10C5A5E7 /* WematchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WematchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		92F56A9B3041CF94B7ED9A71 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		A59A71E22F3D725D00EED109 /* Wematch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wematch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WematchWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A59A72782F3D86ED00EED109 /* WematchShared.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WematchShared.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -82,6 +92,13 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		1C0252E778AB054808831334 /* WematchTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = WematchTests;
+			sourceTree = "<group>";
+		};
 		A59A71E42F3D725D00EED109 /* Wematch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -92,17 +109,29 @@
 		};
 		A59A72652F3D86B100EED109 /* WematchWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "WematchWatch Watch App";
 			sourceTree = "<group>";
 		};
 		A59A72792F3D86ED00EED109 /* WematchShared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = WematchShared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		312F549D6318C9C5EAD67941 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AEBD55F8A9F8C4F491AF479B /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A59A71DF2F3D725D00EED109 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -129,6 +158,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		19623DF56BDC21F44091C5E9 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				92F56A9B3041CF94B7ED9A71 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 		A59A71D92F3D725D00EED109 = {
 			isa = PBXGroup;
 			children = (
@@ -137,6 +174,7 @@
 				A59A72792F3D86ED00EED109 /* WematchShared */,
 				A59A72862F3D875500EED109 /* Frameworks */,
 				A59A71E32F3D725D00EED109 /* Products */,
+				1C0252E778AB054808831334 /* WematchTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -146,6 +184,7 @@
 				A59A71E22F3D725D00EED109 /* Wematch.app */,
 				A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */,
 				A59A72782F3D86ED00EED109 /* WematchShared.framework */,
+				536C3397C63FF68E10C5A5E7 /* WematchTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -153,6 +192,7 @@
 		A59A72862F3D875500EED109 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				19623DF56BDC21F44091C5E9 /* iOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -170,6 +210,27 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		4C07BCF669E26E96D04623DF /* WematchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 162B8125F3B73C622214DC01 /* Build configuration list for PBXNativeTarget "WematchTests" */;
+			buildPhases = (
+				65B2E1DC01A47C65BC671F8F /* Sources */,
+				312F549D6318C9C5EAD67941 /* Frameworks */,
+				124B09215BC4AF84DB65A8A1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC499B5560D746537B94F47B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1C0252E778AB054808831334 /* WematchTests */,
+			);
+			name = WematchTests;
+			productName = WematchTests;
+			productReference = 536C3397C63FF68E10C5A5E7 /* WematchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		A59A71E12F3D725D00EED109 /* Wematch */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A59A71ED2F3D725E00EED109 /* Build configuration list for PBXNativeTarget "Wematch" */;
@@ -214,8 +275,6 @@
 				A59A72652F3D86B100EED109 /* WematchWatch Watch App */,
 			);
 			name = "WematchWatch Watch App";
-			packageProductDependencies = (
-			);
 			productName = "WematchWatch Watch App";
 			productReference = A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */;
 			productType = "com.apple.product-type.application";
@@ -237,8 +296,6 @@
 				A59A72792F3D86ED00EED109 /* WematchShared */,
 			);
 			name = WematchShared;
-			packageProductDependencies = (
-			);
 			productName = WematchShared;
 			productReference = A59A72782F3D86ED00EED109 /* WematchShared.framework */;
 			productType = "com.apple.product-type.framework";
@@ -284,11 +341,19 @@
 				A59A71E12F3D725D00EED109 /* Wematch */,
 				A59A72632F3D86B100EED109 /* WematchWatch Watch App */,
 				A59A72772F3D86ED00EED109 /* WematchShared */,
+				4C07BCF669E26E96D04623DF /* WematchTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		124B09215BC4AF84DB65A8A1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A59A71E02F3D725D00EED109 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -313,6 +378,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		65B2E1DC01A47C65BC671F8F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A59A71DE2F3D725D00EED109 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -347,9 +419,33 @@
 			target = A59A72772F3D86ED00EED109 /* WematchShared */;
 			targetProxy = A59A72892F3D875500EED109 /* PBXContainerItemProxy */;
 		};
+		CC499B5560D746537B94F47B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Wematch;
+			target = A59A71E12F3D725D00EED109 /* Wematch */;
+			targetProxy = 117682ABF8743248B219BB07 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		772E04B7197C57B13024E988 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.remyramadour.WematchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wematch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Wematch";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		A59A71EB2F3D725E00EED109 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -691,9 +787,35 @@
 			};
 			name = Release;
 		};
+		DC47B110099410EFE7972EF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.remyramadour.WematchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wematch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Wematch";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		162B8125F3B73C622214DC01 /* Build configuration list for PBXNativeTarget "WematchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				772E04B7197C57B13024E988 /* Release */,
+				DC47B110099410EFE7972EF9 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A59A71DD2F3D725D00EED109 /* Build configuration list for PBXProject "Wematch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

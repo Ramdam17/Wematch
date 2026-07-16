@@ -18,6 +18,10 @@ final class MockUserProfileRepository: UserProfileRepository {
     func isUsernameAvailable(_ username: String) async throws -> Bool {
         !takenUsernames.contains(username)
     }
+
+    func deleteProfile(userID: String) async throws {
+        profiles[userID] = nil
+    }
 }
 
 final class MockSignInWithAppleCoordinator: SignInWithAppleCoordinator {
@@ -39,21 +43,19 @@ final class AuthenticationManagerTests: XCTestCase {
 
     private var mockRepo: MockUserProfileRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
+    private var keychain: InMemoryKeychain!
     private var authManager: AuthenticationManager!
 
     override func setUp() {
         super.setUp()
         mockRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
+        keychain = InMemoryKeychain()
         authManager = AuthenticationManager(
             repository: mockRepo,
-            coordinator: mockCoordinator
+            coordinator: mockCoordinator,
+            keychain: keychain
         )
-    }
-
-    override func tearDown() {
-        try? KeychainService.delete(key: "appleUserID")
-        super.tearDown()
     }
 
     func testInitialStateIsUnknown() {
@@ -61,13 +63,12 @@ final class AuthenticationManagerTests: XCTestCase {
     }
 
     func testRestoreSessionWithEmptyKeychain() async {
-        try? KeychainService.delete(key: "appleUserID")
         await authManager.restoreSession()
         XCTAssertEqual(authManager.authState, .signedOut)
     }
 
     func testRestoreSessionWithValidKeychainAndProfile() async {
-        try? KeychainService.save(key: "appleUserID", value: "user123")
+        try? keychain.save(key: "appleUserID", value: "user123")
         mockRepo.profiles["user123"] = UserProfile(
             id: "user123", username: "cosmic_panda0042",
             displayName: nil, createdAt: Date(), usernameEdited: false
@@ -78,7 +79,7 @@ final class AuthenticationManagerTests: XCTestCase {
     }
 
     func testRestoreSessionWithKeychainButNoProfile() async {
-        try? KeychainService.save(key: "appleUserID", value: "user123")
+        try? keychain.save(key: "appleUserID", value: "user123")
         await authManager.restoreSession()
         XCTAssertEqual(authManager.authState, .needsUsername)
     }
@@ -144,7 +145,7 @@ final class AuthenticationManagerTests: XCTestCase {
     }
 
     func testSignOut() async {
-        try? KeychainService.save(key: "appleUserID", value: "user123")
+        try? keychain.save(key: "appleUserID", value: "user123")
         mockRepo.profiles["user123"] = UserProfile(
             id: "user123", username: "test_user0001",
             displayName: nil, createdAt: Date(), usernameEdited: false
@@ -156,7 +157,7 @@ final class AuthenticationManagerTests: XCTestCase {
         XCTAssertEqual(authManager.authState, .signedOut)
         XCTAssertNil(authManager.userProfile)
         XCTAssertNil(authManager.currentUserID)
-        XCTAssertNil(KeychainService.retrieve(key: "appleUserID"))
+        XCTAssertNil(keychain.retrieve(key: "appleUserID"))
     }
 }
 

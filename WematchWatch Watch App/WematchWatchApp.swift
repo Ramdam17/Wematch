@@ -38,6 +38,9 @@ struct WematchWatchApp: App {
             guard let type = message["type"] as? String else { continue }
 
             switch type {
+            case "appLaunched":
+                // iPhone app became active — Watch app is now awake
+                logger.debug("Watch app woken up by iPhone")
             case "enterRoom":
                 startRoom()
             case "exitRoom":

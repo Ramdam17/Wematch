@@ -72,6 +72,12 @@ final class MockFriendRepository: FriendRepository {
             $0.username.localizedCaseInsensitiveContains(query)
         }
     }
+
+    func deleteAllFriendData(userID: String) async throws {
+        friendships.removeAll { $0.userID1 == userID || $0.userID2 == userID }
+        incomingRequests.removeAll { $0.receiverID == userID }
+        outgoingRequests.removeAll { $0.senderID == userID }
+    }
 }
 
 // MARK: - Mock Inbox Repository
@@ -93,6 +99,7 @@ final class FriendListViewModelTests: XCTestCase {
     private var mockProfileRepo: MockUserProfileRepository!
     private var mockInboxRepo: MockInboxMessageRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
+    private var keychain: InMemoryKeychain!
     private var authManager: AuthenticationManager!
     private var viewModel: FriendListViewModel!
 
@@ -102,19 +109,16 @@ final class FriendListViewModelTests: XCTestCase {
         mockProfileRepo = MockUserProfileRepository()
         mockInboxRepo = MockInboxMessageRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
+        keychain = InMemoryKeychain()
         authManager = AuthenticationManager(
             repository: mockProfileRepo,
-            coordinator: mockCoordinator
+            coordinator: mockCoordinator,
+            keychain: keychain
         )
     }
 
-    override func tearDown() {
-        try? KeychainService.delete(key: "appleUserID")
-        super.tearDown()
-    }
-
     private func signInUser(id: String = "test_user") async {
-        try? KeychainService.save(key: "appleUserID", value: id)
+        try? keychain.save(key: "appleUserID", value: id)
         mockProfileRepo.profiles[id] = UserProfile(
             id: id, username: "user_\(id)", displayName: nil,
             createdAt: Date(), usernameEdited: false

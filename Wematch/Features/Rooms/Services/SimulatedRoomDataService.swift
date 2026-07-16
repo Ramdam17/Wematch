@@ -34,6 +34,8 @@ final class SimulatedRoomDataService: @unchecked Sendable {
         AsyncStream { continuation in
             let task = Task { [participantCount] in
                 // Initialize participants with random HR
+                // Local simulation record, not public API.
+                // swiftlint:disable:next large_tuple
                 var states: [(id: String, username: String, color: String, currentHR: Double, previousHR: Double, meanTarget: Double)] = []
 
                 for i in 0..<participantCount {
