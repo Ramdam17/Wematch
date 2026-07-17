@@ -29,9 +29,9 @@ final class InboxViewModel {
          groupRepository: (any GroupRepository)? = nil,
          friendRepository: (any FriendRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.inboxRepository = inboxRepository ?? CloudKitInboxRepository()
-        self.groupRepository = groupRepository ?? CloudKitGroupRepository()
-        self.friendRepository = friendRepository ?? CloudKitFriendRepository()
+        self.inboxRepository = inboxRepository ?? FirestoreInboxRepository()
+        self.groupRepository = groupRepository ?? FirestoreGroupRepository()
+        self.friendRepository = friendRepository ?? FirestoreFriendRepository()
         self.authManager = authManager
     }
 

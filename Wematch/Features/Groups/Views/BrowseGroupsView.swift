@@ -9,7 +9,7 @@ struct BrowseGroupsView: View {
     @State private var error: Error?
     @State private var sentRequestGroupIDs: Set<String> = []
 
-    private let repository: any GroupRepository = CloudKitGroupRepository()
+    private let repository: any GroupRepository = FirestoreGroupRepository()
 
     var body: some View {
         ZStack {

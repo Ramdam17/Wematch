@@ -19,7 +19,7 @@ final class CreateGroupViewModel {
 
     init(repository: (any GroupRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.repository = repository ?? CloudKitGroupRepository()
+        self.repository = repository ?? FirestoreGroupRepository()
         self.authManager = authManager
     }
 

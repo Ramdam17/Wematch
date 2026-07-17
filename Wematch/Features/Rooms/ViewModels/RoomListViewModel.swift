@@ -27,7 +27,7 @@ final class RoomListViewModel {
     init(groupRepository: (any GroupRepository)? = nil,
          tempRoomRepository: (any TemporaryRoomRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.groupRepository = groupRepository ?? CloudKitGroupRepository()
+        self.groupRepository = groupRepository ?? FirestoreGroupRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
         self.authManager = authManager
     }

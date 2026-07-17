@@ -32,8 +32,8 @@ final class UserSearchViewModel {
     init(repository: (any FriendRepository)? = nil,
          inboxRepository: (any InboxMessageRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.repository = repository ?? CloudKitFriendRepository()
-        self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
+        self.repository = repository ?? FirestoreFriendRepository()
+        self.inboxRepository = inboxRepository ?? FirestoreInboxMessageRepository()
         self.authManager = authManager
     }
 

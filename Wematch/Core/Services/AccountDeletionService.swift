@@ -18,11 +18,11 @@ final class AccountDeletionService: Sendable {
         profileRepository: (any UserProfileRepository)? = nil,
         tempRoomRepository: (any TemporaryRoomRepository)? = nil
     ) {
-        self.groupRepository = groupRepository ?? CloudKitGroupRepository()
-        self.friendRepository = friendRepository ?? CloudKitFriendRepository()
-        self.inboxRepository = inboxRepository ?? CloudKitInboxRepository()
-        self.inboxMessageRepository = inboxMessageRepository ?? CloudKitInboxMessageRepository()
-        self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
+        self.groupRepository = groupRepository ?? FirestoreGroupRepository()
+        self.friendRepository = friendRepository ?? FirestoreFriendRepository()
+        self.inboxRepository = inboxRepository ?? FirestoreInboxRepository()
+        self.inboxMessageRepository = inboxMessageRepository ?? FirestoreInboxMessageRepository()
+        self.profileRepository = profileRepository ?? FirestoreUserProfileRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
     }
 

@@ -31,9 +31,9 @@ final class GroupDetailViewModel {
          inboxRepository: (any InboxMessageRepository)? = nil,
          authManager: AuthenticationManager) {
         self.group = group
-        self.repository = repository ?? CloudKitGroupRepository()
-        self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
-        self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
+        self.repository = repository ?? FirestoreGroupRepository()
+        self.profileRepository = profileRepository ?? FirestoreUserProfileRepository()
+        self.inboxRepository = inboxRepository ?? FirestoreInboxMessageRepository()
         self.authManager = authManager
     }
 
