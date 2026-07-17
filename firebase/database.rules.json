@@ -1,0 +1,36 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      "$roomID": {
+        ".read": "auth != null",
+
+        "metadata": {
+          ".write": "auth != null"
+        },
+
+        "users": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid",
+            ".validate": "newData.hasChildren(['username', 'currentHR', 'previousHR', 'color', 'timestamp']) || newData.val() == null",
+            "currentHR": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 250" },
+            "previousHR": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 250" },
+            "username": { ".validate": "newData.isString() && newData.val().length <= 64" },
+            "color": { ".validate": "newData.isString() && newData.val().length <= 8" },
+            "timestamp": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    },
+
+    "tempRooms": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null"
+      }
+    }
+  }
+}
