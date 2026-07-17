@@ -7,11 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A57702143008EE9A0092CC20 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2791692B723A09610ABCABEA /* FirebaseAuth */; };
 		A59A726E2F3D86B100EED109 /* WematchWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A59A72642F3D86B100EED109 /* WematchWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A59A72872F3D875500EED109 /* WematchShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; };
 		A59A72882F3D875500EED109 /* WematchShared.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A59A72782F3D86ED00EED109 /* WematchShared.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A59A728F2F3D887000EED109 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = A59A728E2F3D887000EED109 /* FirebaseDatabase */; };
 		AEBD55F8A9F8C4F491AF479B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92F56A9B3041CF94B7ED9A71 /* Foundation.framework */; };
+		DAEB99678DAA3C057900F70D /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,8 +138,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A57702143008EE9A0092CC20 /* FirebaseAuth in Frameworks */,
 				A59A728F2F3D887000EED109 /* FirebaseDatabase in Frameworks */,
 				A59A72872F3D875500EED109 /* WematchShared.framework in Frameworks */,
+				DAEB99678DAA3C057900F70D /* BuildFile in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +257,8 @@
 			name = Wematch;
 			packageProductDependencies = (
 				A59A728E2F3D887000EED109 /* FirebaseDatabase */,
+				2791692B723A09610ABCABEA /* FirebaseAuth */,
+				09AA34CD83EC11AEE082FF49 /* FirebaseFirestore */,
 			);
 			productName = Wematch;
 			productReference = A59A71E22F3D725D00EED109 /* Wematch.app */;
@@ -866,6 +872,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		09AA34CD83EC11AEE082FF49 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A59A728D2F3D887000EED109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		2791692B723A09610ABCABEA /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A59A728D2F3D887000EED109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
 		A59A728E2F3D887000EED109 /* FirebaseDatabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A59A728D2F3D887000EED109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
