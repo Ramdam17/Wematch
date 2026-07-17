@@ -24,4 +24,8 @@ protocol FirebaseAuthenticating: Sendable {
     func signIn(withAppleIDToken idToken: String, rawNonce: String) async throws -> String
 
     func signOut() throws
+
+    /// Permanently deletes the Firebase Auth account of the signed-in user.
+    /// May throw requiresRecentLogin — surface it, never swallow.
+    func deleteAccount() async throws
 }

@@ -9,6 +9,7 @@ final class AccountDeletionService: Sendable {
     private let inboxMessageRepository: any InboxMessageRepository
     private let profileRepository: any UserProfileRepository
     private let tempRoomRepository: any TemporaryRoomRepository
+    private let firebaseAuth: any FirebaseAuthenticating
 
     init(
         groupRepository: (any GroupRepository)? = nil,
@@ -16,7 +17,8 @@ final class AccountDeletionService: Sendable {
         inboxRepository: (any InboxRepository)? = nil,
         inboxMessageRepository: (any InboxMessageRepository)? = nil,
         profileRepository: (any UserProfileRepository)? = nil,
-        tempRoomRepository: (any TemporaryRoomRepository)? = nil
+        tempRoomRepository: (any TemporaryRoomRepository)? = nil,
+        firebaseAuth: (any FirebaseAuthenticating)? = nil
     ) {
         self.groupRepository = groupRepository ?? FirestoreGroupRepository()
         self.friendRepository = friendRepository ?? FirestoreFriendRepository()
@@ -24,6 +26,7 @@ final class AccountDeletionService: Sendable {
         self.inboxMessageRepository = inboxMessageRepository ?? FirestoreInboxMessageRepository()
         self.profileRepository = profileRepository ?? FirestoreUserProfileRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
+        self.firebaseAuth = firebaseAuth ?? FirebaseAuthService()
     }
 
     func deleteAllData(userID: String) async throws {
@@ -44,8 +47,13 @@ final class AccountDeletionService: Sendable {
         // 5. Clean up temp room Firebase indexes
         try await deleteTempRooms(userID: userID)
 
-        // 6. Delete user profile from CloudKit
+        // 6. Delete user profile (Firestore: users/{uid} + username reservation)
         try await profileRepository.deleteProfile(userID: userID)
+
+        // 7. Delete the Firebase Auth account itself — LAST: every earlier
+        // step still needs an authenticated session to pass security rules.
+        // May throw requiresRecentLogin; surfaced to the UI, never swallowed.
+        try await firebaseAuth.deleteAccount()
 
         Log.settings.info("Account deletion complete for user \(userID)")
     }

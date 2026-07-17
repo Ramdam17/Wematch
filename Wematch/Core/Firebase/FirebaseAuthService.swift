@@ -34,4 +34,12 @@ struct FirebaseAuthService: FirebaseAuthenticating {
         try Auth.auth().signOut()
         Log.firebase.info("Firebase Auth signed out")
     }
+
+    func deleteAccount() async throws {
+        guard FirebaseApp.app() != nil, let user = Auth.auth().currentUser else {
+            throw FirebaseAuthError.notConfigured
+        }
+        try await user.delete()
+        Log.firebase.info("Firebase Auth account deleted")
+    }
 }

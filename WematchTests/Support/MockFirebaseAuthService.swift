@@ -8,6 +8,7 @@ final class MockFirebaseAuthService: FirebaseAuthenticating, @unchecked Sendable
     var uidToReturn = "firebase_uid_mock"
     var shouldThrow = false
     var signOutCount = 0
+    var deleteAccountCount = 0
 
     var currentUID: String? { uid }
 
@@ -19,6 +20,11 @@ final class MockFirebaseAuthService: FirebaseAuthenticating, @unchecked Sendable
 
     func signOut() throws {
         signOutCount += 1
+        uid = nil
+    }
+
+    func deleteAccount() async throws {
+        deleteAccountCount += 1
         uid = nil
     }
 }
