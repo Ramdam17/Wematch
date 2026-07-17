@@ -159,3 +159,29 @@ deep-link work), localization FR.
 ---
 
 *Changes during implementation must be noted below with date.*
+
+## Change log
+
+**2026-07-16 — Step 1.2 reoriented: Firestore replaces private-CloudKit+CKShare.**
+Decision by Rémy after the research phase of the spike
+(`Docs/plans/spike-20260716-cloudkit-sharing.md`). Determining facts: the inbox-write
+pattern requires per-relationship shared zones; user discoverability is deprecated
+without replacement (share URLs must transit outside CloudKit ⇒ hybrid architecture
+regardless); shared-DB notifications are degraded and unreliable in production reports;
+Firestore under the Firebase Auth from step 1.1 gives native recipient semantics.
+The 2-account spike was NOT executed — closed by documentary evidence.
+
+Revised step 1.2 (social graph → Firestore, same Firebase Auth):
+- 1.2a Data model + security rules: `users/{uid}` (profile, replaces CloudKit UserProfile
+  as the source of identity; solves the AppleID→UID mapping), `groups/{groupID}`,
+  `joinRequests`, `friendRequests`, `friendships`, `inbox/{uid}/messages` — rules with
+  recipient semantics, versioned in `firebase/firestore.rules`.
+- 1.2b Repositories: Firestore implementations behind the SAME protocols
+  (UserProfileRepository, GroupRepository, FriendRepository, InboxRepository,
+  InboxMessageRepository) — ViewModels untouched by design.
+- 1.2c RTDB path-key migration to Firebase UID (kills E1: room IDs become
+  `temp_{uidA}_{uidB}` with no mangling; per-user nodes keyed by auth.uid).
+- 1.2d Emulator test suite for both rule sets; account deletion updated
+  (AccountDeletionService: Firestore + RTDB, CloudKit removed from the social path).
+- CloudKit remains a candidate for later personal-data features (dashboards, v2);
+  `Docs/plans/spike-20260716-cloudkit-sharing.md` documents why and stays as reference.
