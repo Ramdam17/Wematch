@@ -228,20 +228,15 @@ final class RoomViewModel {
             Log.rooms.error("Failed to leave room cleanly: \(error.localizedDescription)")
         }
 
-        // 4b. Temp room cleanup — destroy index if no participants remain
+        // 4b. Temp room cleanup — destroy room + indexes if no participants
+        // remain. Member IDs are resolved from room metadata by the
+        // repository, never parsed out of the roomID (audit E1).
         if roomID.hasPrefix("temp_") {
             do {
                 let hasOthers = try await tempRoomRepository.hasParticipants(roomID: roomID)
                 if !hasOthers {
-                    // Extract both user IDs from temp room index (we are one of them)
-                    let roomSuffix = roomID.dropFirst("temp_".count)
-                    let parts = roomSuffix.split(separator: "_", maxSplits: 1)
-                    if parts.count == 2 {
-                        let userA = String(parts[0])
-                        let userB = String(parts[1])
-                        try await tempRoomRepository.deleteRoom(roomID: roomID, userA: userA, userB: userB)
-                        Log.rooms.info("Destroyed temp room \(self.roomID) — no participants left")
-                    }
+                    try await tempRoomRepository.deleteRoom(roomID: roomID)
+                    Log.rooms.info("Destroyed temp room \(self.roomID) — no participants left")
                 }
             } catch {
                 Log.rooms.warning("Temp room cleanup failed: \(error.localizedDescription)")

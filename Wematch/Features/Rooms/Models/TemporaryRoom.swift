@@ -6,17 +6,12 @@ struct TemporaryRoom: Identifiable, Sendable {
     let friendUsername: String
     let createdAt: Date
 
-    /// Generates a deterministic room ID for two users.
-    /// Sorted so the same pair always produces the same ID.
+    /// Generates a deterministic room ID for two users (Firebase UIDs).
+    /// Sorted so the same pair always produces the same ID. The ID is an
+    /// opaque key — participant IDs are stored in room metadata, never
+    /// parsed back out of this string (audit E1).
     static func roomID(userA: String, userB: String) -> String {
         let sorted = [userA.firebaseSafe(), userB.firebaseSafe()].sorted()
         return "temp_\(sorted[0])_\(sorted[1])"
-    }
-
-    /// Extracts the two participant IDs from a temp room ID.
-    static func participantIDs(from roomID: String) -> (String, String)? {
-        guard roomID.hasPrefix("temp_") else { return nil }
-        // Cleanup uses Firebase index data, not ID parsing
-        return nil
     }
 }

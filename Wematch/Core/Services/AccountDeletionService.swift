@@ -78,12 +78,12 @@ final class AccountDeletionService: Sendable {
         let tempRooms = try await tempRoomRepository.fetchActiveRooms(userID: userID)
 
         for room in tempRooms {
-            // Delete the room index entries and Firebase data
-            try? await tempRoomRepository.deleteRoom(
-                roomID: room.id,
-                userA: userID.firebaseSafe(),
-                userB: room.friendID
-            )
+            do {
+                try await tempRoomRepository.deleteRoom(roomID: room.id)
+            } catch {
+                // Best-effort during account deletion, but never silent.
+                Log.settings.error("Failed to delete temp room \(room.id): \(error.localizedDescription)")
+            }
         }
 
         if !tempRooms.isEmpty {

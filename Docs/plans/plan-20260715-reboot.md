@@ -185,3 +185,8 @@ Revised step 1.2 (social graph → Firestore, same Firebase Auth):
   (AccountDeletionService: Firestore + RTDB, CloudKit removed from the social path).
 - CloudKit remains a candidate for later personal-data features (dashboards, v2);
   `Docs/plans/spike-20260716-cloudkit-sharing.md` documents why and stays as reference.
+
+**2026-07-17 — E1 closed in 1.2c** (originally scheduled as step 1.9): temp-room member
+IDs now live in `rooms/{roomID}/metadata`; `deleteRoom(roomID:)` resolves them there —
+wrong-ID cleanup is impossible by construction. Regression tests at both the ViewModel
+and repository level (FakeFirebaseService recording removed paths). Step 1.9 is void.

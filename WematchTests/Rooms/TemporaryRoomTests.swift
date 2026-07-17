@@ -27,20 +27,46 @@ final class MockRoomRepository: RoomRepository, @unchecked Sendable {
 final class SpyTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Sendable {
     // Test-only spy: single-threaded XCTest access.
     var hasParticipantsResult = false
-    var deletedRooms: [(roomID: String, userA: String, userB: String)] = []
+    var deletedRoomIDs: [String] = []
 
     func createRoom(roomID: String, userA: String, userB: String,
                     userAUsername: String, userBUsername: String) async throws {}
 
     func fetchActiveRooms(userID: String) async throws -> [TemporaryRoom] { [] }
 
-    func deleteRoom(roomID: String, userA: String, userB: String) async throws {
-        deletedRooms.append((roomID, userA, userB))
+    func deleteRoom(roomID: String) async throws {
+        deletedRoomIDs.append(roomID)
     }
 
     func hasParticipants(roomID: String) async throws -> Bool {
         hasParticipantsResult
     }
+}
+
+/// Records every write/remove path — lets tests verify E1 cleanup end to end.
+final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
+    // Test-only fake: single-threaded XCTest access.
+    var storage: [String: [String: any Sendable]] = [:]
+    var removedPaths: [String] = []
+
+    func write(path: String, value: [String: any Sendable]) async throws {
+        storage[path] = value
+    }
+
+    func observe(path: String) -> AsyncStream<[String: Any]> {
+        let snapshot = storage[path] ?? [:]
+        return AsyncStream { continuation in
+            continuation.yield(snapshot)
+            continuation.finish()
+        }
+    }
+
+    func remove(path: String) async throws {
+        removedPaths.append(path)
+        storage[path] = nil
+    }
+
+    func disconnect() {}
 }
 
 final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {
@@ -82,23 +108,18 @@ final class TemporaryRoomTests: XCTestCase {
         XCTAssertFalse(id.contains("."))
     }
 
-    // MARK: - E1 reproduction (audit finding)
+    // MARK: - E1 regression (audit finding, CLOSED in plan 1.2c)
     //
-    // exitRoom() re-derives the two participant IDs by splitting the roomID
-    // suffix on "_" with maxSplits: 1. With real (dotted) Apple IDs the safe
-    // form itself contains underscores, so the split truncates the first ID
-    // and pollutes the second → deleteRoom is called with wrong IDs and the
-    // temp-room index entries are orphaned in Firebase.
-    //
-    // EXPECTED TO FAIL until plan step 1.9 (store member IDs in room metadata
-    // instead of parsing path keys) is implemented.
+    // Historical bug: exitRoom() re-derived participant IDs by splitting the
+    // roomID on "_", truncating IDs whose safe form contained underscores.
+    // Fixed by construction: deleteRoom(roomID:) resolves members from room
+    // metadata; no caller can pass (wrong) IDs anymore.
 
-    func testExitRoomDeletesTempRoomWithCorrectSafeIDs() async {
-        // Two realistic Apple Sign-In IDs (dots included)
+    func testExitRoomDestroysTempRoomWhenLastParticipantLeaves() async {
+        // Even with the worst historical case (dotted Apple IDs), cleanup
+        // is keyed by roomID only.
         let rawA = "000123.abc"
         let rawB = "000456.def"
-        let safeA = rawA.firebaseSafe() // "000123_abc"
-        let safeB = rawB.firebaseSafe() // "000456_def"
         let roomID = TemporaryRoom.roomID(userA: rawA, userB: rawB)
 
         // Signed-in user = userA
@@ -137,16 +158,42 @@ final class TemporaryRoomTests: XCTestCase {
 
         await viewModel.exitRoom()
 
-        XCTAssertEqual(tempRepo.deletedRooms.count, 1,
-                       "Temp room index must be destroyed when the last participant leaves")
-        let deleted = tempRepo.deletedRooms[0]
-        XCTAssertEqual(deleted.roomID, roomID)
-        // E1: current parsing yields userA = "000123", userB = "abc_000456_def".
-        // XCTExpectFailure keeps CI green while documenting the bug; once plan 1.9
-        // lands, this reports "unexpectedly passed" and the expectation must go.
-        XCTExpectFailure("Known bug E1 — temp-room ID parsing truncates dotted Apple IDs (fix: plan 1.9)") {
-            XCTAssertEqual(Set([deleted.userA, deleted.userB]), Set([safeA, safeB]),
-                           "deleteRoom must receive the two firebaseSafe participant IDs intact")
-        }
+        XCTAssertEqual(tempRepo.deletedRoomIDs, [roomID],
+                       "Temp room must be destroyed when the last participant leaves")
+    }
+
+    // The true E1 regression test: with UID members stored in metadata, the
+    // repository must remove BOTH index entries and the room node — resolved
+    // from metadata, regardless of what the roomID string looks like.
+    func testDeleteRoomResolvesMembersFromMetadataNotFromRoomID() async throws {
+        let fake = FakeFirebaseService()
+        let repo = FirebaseTemporaryRoomRepository(firebaseService: fake)
+
+        // Firebase UIDs (no dots) — but also works with any opaque ID.
+        let uidA = "uidAAAA1111"
+        let uidB = "uidBBBB2222"
+        let roomID = TemporaryRoom.roomID(userA: uidA, userB: uidB)
+
+        try await repo.createRoom(roomID: roomID, userA: uidA, userB: uidB,
+                                  userAUsername: "alice", userBUsername: "bob")
+        try await repo.deleteRoom(roomID: roomID)
+
+        XCTAssertTrue(fake.removedPaths.contains("tempRooms/\(uidA)/\(roomID)"),
+                      "User A's index entry must be removed")
+        XCTAssertTrue(fake.removedPaths.contains("tempRooms/\(uidB)/\(roomID)"),
+                      "User B's index entry must be removed")
+        XCTAssertTrue(fake.removedPaths.contains("rooms/\(roomID)"),
+                      "Room node must be removed")
+    }
+
+    func testDeleteRoomWithoutMetadataStillRemovesRoomNode() async throws {
+        let fake = FakeFirebaseService()
+        let repo = FirebaseTemporaryRoomRepository(firebaseService: fake)
+
+        // Legacy room: no metadata written.
+        try await repo.deleteRoom(roomID: "temp_legacy_room")
+
+        XCTAssertEqual(fake.removedPaths, ["rooms/temp_legacy_room"],
+                       "Room node removed; unresolvable indexes are logged, not guessed")
     }
 }
