@@ -20,7 +20,17 @@ final class AuthenticationManager {
     private(set) var isLoading = false
     var error: Error?
 
-    var currentUserID: String? { storedUserID }
+    /// Canonical user identity for the whole app since plan 1.2: the Firebase
+    /// Auth UID. Keys Firestore documents (users/{uid}, social graph) and all
+    /// Realtime Database paths. nil = no usable session.
+    var currentUserID: String? { firebaseUID }
+
+    /// Apple user ID from Sign in with Apple — kept ONLY as the local session
+    /// marker (Keychain) and for legacy CloudKit records until 1.2d completes.
+    /// Never use it to key Firebase paths.
+    var appleUserID: String? { storedUserID }
+
+    private(set) var firebaseUID: String?
 
     // MARK: - Dependencies
 
@@ -28,6 +38,7 @@ final class AuthenticationManager {
     private let coordinator: SignInWithAppleCoordinator
     private let usernameGenerator: UsernameGenerator
     private let keychain: any KeychainStoring
+    private let firebaseAuth: any FirebaseAuthenticating
     private var storedUserID: String?
 
     private static let keychainKey = "appleUserID"
@@ -37,11 +48,13 @@ final class AuthenticationManager {
     init(repository: (any UserProfileRepository)? = nil,
          coordinator: SignInWithAppleCoordinator? = nil,
          usernameGenerator: UsernameGenerator? = nil,
-         keychain: (any KeychainStoring)? = nil) {
-        self.repository = repository ?? CloudKitUserProfileRepository()
+         keychain: (any KeychainStoring)? = nil,
+         firebaseAuth: (any FirebaseAuthenticating)? = nil) {
+        self.repository = repository ?? FirestoreUserProfileRepository()
         self.coordinator = coordinator ?? SignInWithAppleCoordinator()
         self.usernameGenerator = usernameGenerator ?? UsernameGenerator()
         self.keychain = keychain ?? KeychainService()
+        self.firebaseAuth = firebaseAuth ?? FirebaseAuthService()
     }
 
     // MARK: - Session Restoration
@@ -56,8 +69,17 @@ final class AuthenticationManager {
         storedUserID = userID
         Log.auth.info("Restoring session for user \(userID)")
 
+        // Firebase Auth persists its own session; without it there is no
+        // usable identity (profiles and paths are keyed by UID) — re-sign-in.
+        firebaseUID = firebaseAuth.currentUID
+        guard let uid = firebaseUID else {
+            Log.auth.warning("Apple session found but no Firebase session — sign-in required again")
+            authState = .signedOut
+            return
+        }
+
         do {
-            if let profile = try await repository.fetchProfile(userID: userID) {
+            if let profile = try await repository.fetchProfile(userID: uid) {
                 userProfile = profile
                 authState = .signedIn
                 Log.auth.info("Session restored — welcome back \(profile.username)")
@@ -79,11 +101,20 @@ final class AuthenticationManager {
         defer { isLoading = false }
 
         do {
-            let userID = try await coordinator.signIn()
-            storedUserID = userID
-            try keychain.save(key: Self.keychainKey, value: userID)
+            let signIn = try await coordinator.signIn()
+            storedUserID = signIn.userID
+            try keychain.save(key: Self.keychainKey, value: signIn.userID)
 
-            if let profile = try await repository.fetchProfile(userID: userID) {
+            // Federate into Firebase Auth. Since plan 1.2 the Firebase UID IS
+            // the app identity (Firestore + RTDB) — federation failure fails
+            // the sign-in, loudly.
+            let uid = try await firebaseAuth.signIn(
+                withAppleIDToken: signIn.identityToken,
+                rawNonce: signIn.rawNonce
+            )
+            firebaseUID = uid
+
+            if let profile = try await repository.fetchProfile(userID: uid) {
                 userProfile = profile
                 authState = .signedIn
                 Log.auth.info("Returning user signed in: \(profile.username)")
@@ -108,7 +139,7 @@ final class AuthenticationManager {
     }
 
     func confirmUsername() async {
-        guard let userID = storedUserID else { return }
+        guard let userID = firebaseUID else { return }
 
         isLoading = true
         defer { isLoading = false }
@@ -149,6 +180,12 @@ final class AuthenticationManager {
         } catch {
             Log.auth.error("Failed to clear keychain: \(error.localizedDescription)")
         }
+        do {
+            try firebaseAuth.signOut()
+        } catch {
+            Log.auth.error("Firebase sign-out failed: \(error.localizedDescription)")
+        }
+        firebaseUID = nil
         storedUserID = nil
         userProfile = nil
         generatedUsername = ""

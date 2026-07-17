@@ -105,14 +105,16 @@ final class TemporaryRoomTests: XCTestCase {
         let profileRepo = MockUserProfileRepository()
         let coordinator = MockSignInWithAppleCoordinator()
         coordinator.userIDToReturn = rawA
-        profileRepo.profiles[rawA] = UserProfile(
-            id: rawA, username: "cosmic_panda0042",
+        // Profiles are keyed by the Firebase UID since plan 1.2.
+        profileRepo.profiles["firebase_uid_mock"] = UserProfile(
+            id: "firebase_uid_mock", username: "cosmic_panda0042",
             displayName: nil, createdAt: Date(), usernameEdited: false
         )
         let authManager = AuthenticationManager(
             repository: profileRepo,
             coordinator: coordinator,
-            keychain: InMemoryKeychain()
+            keychain: InMemoryKeychain(),
+            firebaseAuth: MockFirebaseAuthService()
         )
         await authManager.signInWithApple()
 
