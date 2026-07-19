@@ -32,9 +32,9 @@ final class FriendListViewModel {
          inboxRepository: (any InboxMessageRepository)? = nil,
          tempRoomRepository: (any TemporaryRoomRepository)? = nil,
          authManager: AuthenticationManager) {
-        self.repository = repository ?? CloudKitFriendRepository()
-        self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
-        self.inboxRepository = inboxRepository ?? CloudKitInboxMessageRepository()
+        self.repository = repository ?? FirestoreFriendRepository()
+        self.profileRepository = profileRepository ?? FirestoreUserProfileRepository()
+        self.inboxRepository = inboxRepository ?? FirestoreInboxMessageRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
         self.authManager = authManager
     }

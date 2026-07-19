@@ -100,6 +100,7 @@ final class FriendListViewModelTests: XCTestCase {
     private var mockInboxRepo: MockInboxMessageRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
     private var keychain: InMemoryKeychain!
+    private var mockFirebaseAuth: MockFirebaseAuthService!
     private var authManager: AuthenticationManager!
     private var viewModel: FriendListViewModel!
 
@@ -110,15 +111,18 @@ final class FriendListViewModelTests: XCTestCase {
         mockInboxRepo = MockInboxMessageRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
         keychain = InMemoryKeychain()
+        mockFirebaseAuth = MockFirebaseAuthService()
         authManager = AuthenticationManager(
             repository: mockProfileRepo,
             coordinator: mockCoordinator,
-            keychain: keychain
+            keychain: keychain,
+            firebaseAuth: mockFirebaseAuth
         )
     }
 
     private func signInUser(id: String = "test_user") async {
         try? keychain.save(key: "appleUserID", value: id)
+        mockFirebaseAuth.uid = id
         mockProfileRepo.profiles[id] = UserProfile(
             id: id, username: "user_\(id)", displayName: nil,
             createdAt: Date(), usernameEdited: false

@@ -9,6 +9,7 @@ final class AccountDeletionService: Sendable {
     private let inboxMessageRepository: any InboxMessageRepository
     private let profileRepository: any UserProfileRepository
     private let tempRoomRepository: any TemporaryRoomRepository
+    private let firebaseAuth: any FirebaseAuthenticating
 
     init(
         groupRepository: (any GroupRepository)? = nil,
@@ -16,14 +17,16 @@ final class AccountDeletionService: Sendable {
         inboxRepository: (any InboxRepository)? = nil,
         inboxMessageRepository: (any InboxMessageRepository)? = nil,
         profileRepository: (any UserProfileRepository)? = nil,
-        tempRoomRepository: (any TemporaryRoomRepository)? = nil
+        tempRoomRepository: (any TemporaryRoomRepository)? = nil,
+        firebaseAuth: (any FirebaseAuthenticating)? = nil
     ) {
-        self.groupRepository = groupRepository ?? CloudKitGroupRepository()
-        self.friendRepository = friendRepository ?? CloudKitFriendRepository()
-        self.inboxRepository = inboxRepository ?? CloudKitInboxRepository()
-        self.inboxMessageRepository = inboxMessageRepository ?? CloudKitInboxMessageRepository()
-        self.profileRepository = profileRepository ?? CloudKitUserProfileRepository()
+        self.groupRepository = groupRepository ?? FirestoreGroupRepository()
+        self.friendRepository = friendRepository ?? FirestoreFriendRepository()
+        self.inboxRepository = inboxRepository ?? FirestoreInboxRepository()
+        self.inboxMessageRepository = inboxMessageRepository ?? FirestoreInboxMessageRepository()
+        self.profileRepository = profileRepository ?? FirestoreUserProfileRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
+        self.firebaseAuth = firebaseAuth ?? FirebaseAuthService()
     }
 
     func deleteAllData(userID: String) async throws {
@@ -44,8 +47,13 @@ final class AccountDeletionService: Sendable {
         // 5. Clean up temp room Firebase indexes
         try await deleteTempRooms(userID: userID)
 
-        // 6. Delete user profile from CloudKit
+        // 6. Delete user profile (Firestore: users/{uid} + username reservation)
         try await profileRepository.deleteProfile(userID: userID)
+
+        // 7. Delete the Firebase Auth account itself — LAST: every earlier
+        // step still needs an authenticated session to pass security rules.
+        // May throw requiresRecentLogin; surfaced to the UI, never swallowed.
+        try await firebaseAuth.deleteAccount()
 
         Log.settings.info("Account deletion complete for user \(userID)")
     }
@@ -78,12 +86,12 @@ final class AccountDeletionService: Sendable {
         let tempRooms = try await tempRoomRepository.fetchActiveRooms(userID: userID)
 
         for room in tempRooms {
-            // Delete the room index entries and Firebase data
-            try? await tempRoomRepository.deleteRoom(
-                roomID: room.id,
-                userA: userID.firebaseSafe(),
-                userB: room.friendID
-            )
+            do {
+                try await tempRoomRepository.deleteRoom(roomID: room.id)
+            } catch {
+                // Best-effort during account deletion, but never silent.
+                Log.settings.error("Failed to delete temp room \(room.id): \(error.localizedDescription)")
+            }
         }
 
         if !tempRooms.isEmpty {

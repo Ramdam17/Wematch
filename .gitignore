@@ -16,6 +16,9 @@ xcuserdata/
 GoogleService-Info.plist
 firebase-debug.log
 firebase-debug.*.log
+firestore-debug.log
+database-debug.log
+firebase/tests/node_modules/
 
 # Serena
 .serena/

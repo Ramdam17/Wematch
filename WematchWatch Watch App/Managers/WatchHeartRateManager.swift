@@ -154,7 +154,8 @@ extension WatchHeartRateManager: HKLiveWorkoutBuilderDelegate {
 
         let hr = value.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
 
-        logger.debug("HR: \(hr, format: .fixed(precision: 0)) BPM")
+        // Heart rate is health data — never in cleartext logs (audit B5).
+        logger.debug("HR: \(hr, format: .fixed(precision: 0), privacy: .private) BPM")
         streamContinuation?.yield(hr.rounded())
     }
 }

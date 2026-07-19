@@ -106,6 +106,7 @@ final class InboxViewModelTests: XCTestCase {
     private var mockProfileRepo: MockUserProfileRepository!
     private var mockCoordinator: MockSignInWithAppleCoordinator!
     private var keychain: InMemoryKeychain!
+    private var mockFirebaseAuth: MockFirebaseAuthService!
     private var authManager: AuthenticationManager!
     private var viewModel: InboxViewModel!
 
@@ -117,15 +118,18 @@ final class InboxViewModelTests: XCTestCase {
         mockProfileRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
         keychain = InMemoryKeychain()
+        mockFirebaseAuth = MockFirebaseAuthService()
         authManager = AuthenticationManager(
             repository: mockProfileRepo,
             coordinator: mockCoordinator,
-            keychain: keychain
+            keychain: keychain,
+            firebaseAuth: mockFirebaseAuth
         )
     }
 
     private func signInUser(id: String = "test_user") async {
         try? keychain.save(key: "appleUserID", value: id)
+        mockFirebaseAuth.uid = id
         mockProfileRepo.profiles[id] = UserProfile(
             id: id, username: "user_\(id)", displayName: nil,
             createdAt: Date(), usernameEdited: false

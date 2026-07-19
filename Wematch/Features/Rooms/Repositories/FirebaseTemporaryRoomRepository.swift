@@ -36,11 +36,23 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
                     userAUsername: String, userBUsername: String) async throws {
         let now = Date().timeIntervalSince1970
 
+        // Member IDs live in the room's metadata — the ONLY source cleanup
+        // reads from (never parsed out of the roomID, audit E1). Stored raw:
+        // they are Firebase UIDs used as values, not path keys.
+        try await firebaseService.write(
+            path: "rooms/\(roomID.firebaseSafe())/metadata",
+            value: [
+                "type": "temporary",
+                "memberIDs": [userA, userB],
+                "createdAt": now
+            ]
+        )
+
         // Write index entry for User A (friend = B)
         try await firebaseService.write(
             path: indexPath(userA, roomID),
             value: [
-                "friendID": userB.firebaseSafe(),
+                "friendID": userB,
                 "friendUsername": userBUsername,
                 "createdAt": now
             ]
@@ -50,7 +62,7 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
         try await firebaseService.write(
             path: indexPath(userB, roomID),
             value: [
-                "friendID": userA.firebaseSafe(),
+                "friendID": userA,
                 "friendUsername": userAUsername,
                 "createdAt": now
             ]
@@ -82,15 +94,43 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
         }
     }
 
-    func deleteRoom(roomID: String, userA: String, userB: String) async throws {
-        // Remove index entries for both users
-        try await firebaseService.remove(path: indexPath(userA, roomID))
-        try await firebaseService.remove(path: indexPath(userB, roomID))
+    func deleteRoom(roomID: String) async throws {
+        // Resolve members from metadata — never from the roomID string (E1).
+        let metadata = await readOnce(path: "rooms/\(roomID.firebaseSafe())/metadata")
+        if let memberIDs = metadata["memberIDs"] as? [String] {
+            for memberID in memberIDs {
+                try await firebaseService.remove(path: indexPath(memberID, roomID))
+            }
+        } else {
+            // Legacy room without metadata: the room node is still removable,
+            // but its index entries cannot be resolved — loud, not silent.
+            Log.rooms.error("Temp room \(roomID) has no memberIDs metadata — index entries left behind")
+        }
 
         // Remove room data from Firebase
         try await firebaseService.remove(path: "rooms/\(roomID.firebaseSafe())")
 
         Log.rooms.info("Destroyed temp room: \(roomID)")
+    }
+
+    /// One-shot read built on the observe stream (first snapshot wins,
+    /// 5 s safety timeout). Single home for the pattern until a proper
+    /// `read(path:)` lands on FirebaseServiceProtocol (plan 1.7, C5).
+    private func readOnce(path: String) async -> [String: Any] {
+        await withCheckedContinuation { continuation in
+            let task = Task {
+                for await snapshot in firebaseService.observe(path: path) {
+                    continuation.resume(returning: snapshot)
+                    return
+                }
+                continuation.resume(returning: [:])
+            }
+
+            Task {
+                try? await Task.sleep(for: .seconds(5))
+                task.cancel()
+            }
+        }
     }
 
     func hasParticipants(roomID: String) async throws -> Bool {

@@ -11,7 +11,7 @@ struct JoinGroupSheet: View {
     @State private var error: Error?
     @State private var requestSent = false
 
-    private let repository: any GroupRepository = CloudKitGroupRepository()
+    private let repository: any GroupRepository = FirestoreGroupRepository()
 
     var body: some View {
         NavigationStack {

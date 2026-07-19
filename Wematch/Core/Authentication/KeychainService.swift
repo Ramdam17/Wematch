@@ -41,6 +41,9 @@ struct KeychainService: Sendable, KeychainStoring {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
+            // Session marker never leaves this device (no iCloud keychain
+            // sync, excluded from device-to-device migration) — audit B4.
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecValueData as String: data
         ]
 
@@ -52,7 +55,11 @@ struct KeychainService: Sendable, KeychainStoring {
                 kSecAttrService as String: service,
                 kSecAttrAccount as String: key
             ]
-            let attributes: [String: Any] = [kSecValueData as String: data]
+            let attributes: [String: Any] = [
+                kSecValueData as String: data,
+                // Upgrade pre-existing items to the stricter ACL too (B4).
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            ]
             let updateStatus = SecItemUpdate(updateQuery as CFDictionary, attributes as CFDictionary)
             guard updateStatus == errSecSuccess else {
                 throw KeychainError.saveFailed(updateStatus)
