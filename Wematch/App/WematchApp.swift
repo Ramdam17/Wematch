@@ -3,11 +3,15 @@ import OSLog
 
 @main
 struct WematchApp: App {
-    @State private var authManager = AuthenticationManager()
+    @State private var authManager: AuthenticationManager
 
     init() {
+        // Firebase MUST be configured before anything Firebase-adjacent is
+        // built (stored-property defaults would run first) — avoids the
+        // I-COR000003 "not yet configured" boot warning.
         FirebaseManager.shared.configure()
         PhoneSessionManager.shared.activate()
+        _authManager = State(initialValue: AuthenticationManager())
         Log.general.info("Wematch app launched")
     }
 

@@ -26,6 +26,7 @@ struct AnimatedBackground: View {
 // MARK: - Floating Particles
 
 private struct FloatingParticlesView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var particles: [Particle] = []
     @State private var timer: Timer?
 
@@ -61,9 +62,20 @@ private struct FloatingParticlesView: View {
         }
         .onAppear { startSpawning() }
         .onDisappear { timer?.invalidate() }
+        .onChange(of: scenePhase) { _, newPhase in
+            // No background/inactive work: the spawn timer is the only thing
+            // that keeps running when frames stop rendering (audit F3).
+            if newPhase == .active {
+                startSpawning()
+            } else {
+                timer?.invalidate()
+                timer = nil
+            }
+        }
     }
 
     private func startSpawning() {
+        guard timer == nil else { return }
         spawnParticle()
         timer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
             Task { @MainActor in

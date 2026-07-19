@@ -49,6 +49,12 @@ struct RoomView: View {
         .task {
             await viewModel.enterRoom()
         }
+        .onDisappear {
+            // Guaranteed teardown on EVERY exit path — swipe-back, tab tree
+            // swap on sign-out/account deletion, not just the Leave button
+            // (audit C1). exitRoom() is idempotent (guards isInRoom).
+            Task { await viewModel.exitRoom() }
+        }
         .alert("Error", isPresented: .init(
             get: { viewModel.error != nil },
             set: { if !$0 { viewModel.error = nil } }

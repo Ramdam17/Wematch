@@ -43,31 +43,8 @@ final class SpyTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Send
     }
 }
 
-/// Records every write/remove path — lets tests verify E1 cleanup end to end.
-final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
-    // Test-only fake: single-threaded XCTest access.
-    var storage: [String: [String: any Sendable]] = [:]
-    var removedPaths: [String] = []
-
-    func write(path: String, value: [String: any Sendable]) async throws {
-        storage[path] = value
-    }
-
-    func observe(path: String) -> AsyncStream<[String: Any]> {
-        let snapshot = storage[path] ?? [:]
-        return AsyncStream { continuation in
-            continuation.yield(snapshot)
-            continuation.finish()
-        }
-    }
-
-    func remove(path: String) async throws {
-        removedPaths.append(path)
-        storage[path] = nil
-    }
-
-    func disconnect() {}
-}
+// FakeFirebaseService lives in WematchTests/Support/FakeFirebaseService.swift
+// (shared with RoomLifecycleTests).
 
 final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {
     var isAuthorized = true
