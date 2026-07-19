@@ -1,0 +1,13 @@
+{
+  "name": "wematch-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Security-rules tests for RTDB + Firestore (plan 1.2d). Run via `npm test` — wraps node --test in emulators:exec.",
+  "scripts": {
+    "test": "cd ../.. && npx firebase-tools emulators:exec --only database,firestore \"cd firebase/tests && node --test\""
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.0.0"
+  }
+}
