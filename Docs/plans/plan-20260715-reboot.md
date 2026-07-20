@@ -186,7 +186,25 @@ Revised step 1.2 (social graph → Firestore, same Firebase Auth):
 - CloudKit remains a candidate for later personal-data features (dashboards, v2);
   `Docs/plans/spike-20260716-cloudkit-sharing.md` documents why and stays as reference.
 
+**2026-07-19 — Phase 2 opened; design brief validated.** Decisions (Rémy): iPad dropped
+for v1 (closes G5 by removal); **Dark Cosmic is a v1 selectable theme** (scope increase
+on 2.2 accepted: paired tokens verified AA in both themes, dark variant pass on the 6
+screens after light validation, theme toggle in Settings); tint-pair contrast strategy
+(G2); "delighted recognition" sync register. Brief: `Docs/design-brief.md` (Validated).
+Sprint 16 (lifecycle pass 1.4–1.6) merged separately — closes C1, F3, F4; C2 re-qualified
+as sound and pinned by test.
+
 **2026-07-17 — E1 closed in 1.2c** (originally scheduled as step 1.9): temp-room member
 IDs now live in `rooms/{roomID}/metadata`; `deleteRoom(roomID:)` resolves them there —
 wrong-ID cleanup is impossible by construction. Regression tests at both the ViewModel
 and repository level (FakeFirebaseService recording removed paths). Step 1.9 is void.
+
+**2026-07-20 — Figma library + screens complete (plan 2.2); Watch dashboard added to scope
+(decision Rémy).** Library: 132 variables (incl. bimodal heart palette computed to >=3:1
+in light — accessibility finding), 14 text styles, 4 effect styles, 11 components; 6 core
+screens x 2 modes + a11y variants; Watch: 4 states (Idle / Waiting / Room / Dashboard).
+The Watch dashboard (best friend, stars count, time in sync, biggest cluster) extends the
+Sprint-12 dashboard stubs: metrics derive from SessionLog/SyncEvent; iPhone computes and
+pushes a snapshot via WCSession (Watch stays a passive display). Code decision pending:
+"time in sync" = union of SyncEvent intervals vs plain sum (sum overcounts overlapping
+clusters). Design source of truth: Figma file wematch-ds-001 (b3bezjB9kQ1CcRfghj4Saw).
