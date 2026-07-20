@@ -195,7 +195,10 @@ final class RoomViewModel {
     }
 
     func exitRoom() async {
-        guard let userID = currentUserID, isInRoom else { return }
+        // Local teardown must run even with NO session left (sign-out or
+        // account deletion while in a room — audit C1): never gate task
+        // cancellation on having a userID.
+        guard isInRoom else { return }
 
         // 1. Cancel all background tasks
         observeTask?.cancel()
@@ -221,26 +224,32 @@ final class RoomViewModel {
         sendWatchCommand("exitRoom")
         #endif
 
-        // 4. Remove from Firebase
-        do {
-            try await roomRepository.leaveRoom(roomID: roomID, userID: userID)
-        } catch {
-            Log.rooms.error("Failed to leave room cleanly: \(error.localizedDescription)")
-        }
-
-        // 4b. Temp room cleanup — destroy room + indexes if no participants
-        // remain. Member IDs are resolved from room metadata by the
-        // repository, never parsed out of the roomID (audit E1).
-        if roomID.hasPrefix("temp_") {
+        // 4. Network cleanup — needs an identity; when the session is already
+        // gone (sign-out mid-room) we skip it LOUDLY and let the Firebase
+        // onDisconnect hook reap the participant node.
+        if let userID = currentUserID {
             do {
-                let hasOthers = try await tempRoomRepository.hasParticipants(roomID: roomID)
-                if !hasOthers {
-                    try await tempRoomRepository.deleteRoom(roomID: roomID)
-                    Log.rooms.info("Destroyed temp room \(self.roomID) — no participants left")
-                }
+                try await roomRepository.leaveRoom(roomID: roomID, userID: userID)
             } catch {
-                Log.rooms.warning("Temp room cleanup failed: \(error.localizedDescription)")
+                Log.rooms.error("Failed to leave room cleanly: \(error.localizedDescription)")
             }
+
+            // 4b. Temp room cleanup — destroy room + indexes if no participants
+            // remain. Member IDs are resolved from room metadata by the
+            // repository, never parsed out of the roomID (audit E1).
+            if roomID.hasPrefix("temp_") {
+                do {
+                    let hasOthers = try await tempRoomRepository.hasParticipants(roomID: roomID)
+                    if !hasOthers {
+                        try await tempRoomRepository.deleteRoom(roomID: roomID)
+                        Log.rooms.info("Destroyed temp room \(self.roomID) — no participants left")
+                    }
+                } catch {
+                    Log.rooms.warning("Temp room cleanup failed: \(error.localizedDescription)")
+                }
+            }
+        } else {
+            Log.rooms.warning("Exited room with no session — Firebase cleanup skipped, onDisconnect will reap")
         }
 
         // 5. Clear state
@@ -264,8 +273,11 @@ final class RoomViewModel {
         let hasNewFormations = !newFormations.isEmpty && !previousSyncedPairs.isEmpty
 
         if hasNewFormations {
-            // Spawn one star per new sync pair
-            for _ in newFormations {
+            // Spawn one star per new sync pair, hard-capped: each star is a
+            // blurred repeatForever animation, unbounded spawning is a GPU
+            // and battery sink at 20 participants (audit F4).
+            let maxActiveStars = 24
+            for _ in newFormations where activeStars.count < maxActiveStars {
                 let star = SyncStar(
                     position: CGPoint(
                         x: CGFloat.random(in: 0.1...0.9),
