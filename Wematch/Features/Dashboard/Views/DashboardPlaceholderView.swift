@@ -9,7 +9,7 @@ struct DashboardPlaceholderView: View {
 
             VStack(spacing: 32) {
                 // Pulsing heart
-                HeartIcon(color: Color(hex: "F472B6"), size: 64, showGlow: true)
+                HeartIcon(color: WematchTheme.brandHeart, size: 64, showGlow: true)
                     .scaleEffect(isPulsing ? 1.15 : 0.95)
                     .animation(
                         .easeInOut(duration: 1.0).repeatForever(autoreverses: true),

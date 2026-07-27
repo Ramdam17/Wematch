@@ -41,11 +41,13 @@ enum WematchTheme {
 
     // MARK: - Background
 
-    static let backgroundColors: [Color] = [
-        adaptive(light: "FDF2F8", dark: "1A0B20"),
-        adaptive(light: "F3E8FF", dark: "16102C"),
-        adaptive(light: "EDE9FE", dark: "12102A"),
-    ]
+    /// Gradient stops per mode (`bg/0`…`bg/2`), kept as hex so the accessibility tests can
+    /// measure against the same values the gradient actually draws.
+    static let backgroundHexesLight = ["FDF2F8", "F3E8FF", "EDE9FE"]
+    static let backgroundHexesDark = ["1A0B20", "16102C", "12102A"]
+
+    static let backgroundColors: [Color] = zip(backgroundHexesLight, backgroundHexesDark)
+        .map { adaptive(light: $0, dark: $1) }
 
     static let backgroundGradient = LinearGradient(
         colors: backgroundColors,
@@ -120,38 +122,44 @@ enum WematchTheme {
 
     // MARK: - Heart Palette (20 slots, bimodal)
 
-    /// Slot hues for Dark Cosmic — the vivid pastels the app was designed around.
-    static let heartColorHexesDark: [String] = [
-        "FF6B9D", "C084FC", "67E8F9",
-        "F472B6", "A78BFA", "34D399",
-        "FBBF24", "FB923C", "F87171",
-        "818CF8", "6EE7B7", "FDE68A",
-        "93C5FD", "FCA5A5", "86EFAC",
-        "FDA4AF", "D8B4FE", "5EEAD4",
-        "FCD34D", "A5B4FC",
-    ]
-
-    /// Slot hues for Pastel Light: each pastel darkened toward the 3:1 floor for a
-    /// graphical object, which all 20 pastels failed on a pale background (1.14–2.73:1).
+    /// One palette for both colour modes: the marker's outline, not its fill, carries the
+    /// contrast against the background.
     ///
-    /// Two known limits, measured rather than assumed. Against `bg/0` these land at
-    /// 3.05–3.24:1, but against the full background set the worst is 2.80:1, so the
-    /// floor is not met everywhere. And darkening compressed the hue space: five pairs
-    /// sit under CIEDE2000 dE 2.2 — slots 9/14 at dE 0.6 are indistinguishable. Marker
-    /// identity survives because each heart also carries its username, but the palette
-    /// needs re-deriving under both constraints at once.
-    static let heartColorHexesLight: [String] = [
-        "FF3D7F", "B162FF", "039AAD",
-        "F543A0", "9572FC", "1E9C6E",
-        "B48200", "E36600", "FA4848",
-        "6F7CFB", "169E68", "A98700",
-        "268CFF", "FD4848", "119D44",
-        "FF465D", "B167FF", "119E88",
-        "B08700", "6680FE",
+    /// Derived rather than picked by hand. Twenty hues sit on an even 18° grid anchored on
+    /// the brand pink, and each slot's lightness and saturation were searched to maximise
+    /// the minimum CIEDE2000 distance across the whole set. A participant is tracked by
+    /// colour as their heart moves across the plot, so two slots sharing a hue is a
+    /// functional defect, not a cosmetic one — and the original twenty clustered badly
+    /// (four yellows, four greens, four purples) at dE 3.7.
+    ///
+    /// Measured: minimum pairwise distance dE 11.8, past the dE 10 mark where two colours
+    /// read as different at a glance, and 3.29:1 against the Dark Cosmic backgrounds.
+    ///
+    /// Why one palette and not two. Darkening these to clear 3:1 on a near-white
+    /// background was tried and rejected: it forces the yellow and orange slots to olive
+    /// and brown — unavoidable, since yellow carries intrinsically high luminance — and it
+    /// compresses the hue space so hard that separability saturates near dE 7.5 no matter
+    /// how many slots are asked for. Letting `plotMarkerOutline` provide the boundary
+    /// keeps the hues as designed in both modes.
+    static let heartColorHexes: [String] = [
+        "D3698D", "FA4249", "EFBBA9",
+        "FAAA42", "D5C66D", "DCFA42",
+        "CFF8A0", "6EFA42", "79D87F",
+        "B0E8C4", "42FABC", "5EF7F2",
+        "42CAFA", "4A94F2", "425BFA",
+        "B9B0E8", "9D6DD5", "E497FC",
+        "FA42EF", "E8B0D4",
     ]
 
-    static let heartColors: [Color] = zip(heartColorHexesLight, heartColorHexesDark)
-        .map { adaptive(light: $0, dark: $1) }
+    static let heartColors: [Color] = heartColorHexes.map { Color(hex: $0) }
+
+    /// The brand heart (`brand/gradient/0`), for hero art and empty states.
+    ///
+    /// Deliberately not a palette slot. Slots identify participants and are chosen for
+    /// mutual separability, so they move when the palette is re-derived — which is exactly
+    /// what a logo must not do. Anything representing the app rather than a person uses
+    /// this.
+    static let brandHeart = Color(hex: "FF6B9D")
 
     static func heartColor(for slot: HeartPaletteSlot) -> Color {
         heartColors[slot.index]
@@ -163,9 +171,24 @@ enum WematchTheme {
     static let plotDiagonal = adaptiveInk(lightAlpha: 0.12, darkAlpha: 0.15)
     static let plotLabel = adaptiveInk(lightAlpha: 0.35, darkAlpha: 0.35)
 
-    /// Sticker outline keeping light-mode heart markers separable from a pale
-    /// background; transparent in dark mode, where the markers read on their own.
-    static let plotMarkerOutline = adaptiveInk(lightAlpha: 0.35, darkAlpha: 0)
+    /// Load-bearing sticker outline: in light mode this boundary, not the pastel fill, is
+    /// what satisfies the 3:1 requirement for a graphical object (WCAG SC 1.4.11).
+    ///
+    /// 70% is a measured threshold, not a taste. Composited over the backgrounds it
+    /// reaches 7.87:1, and it is the lowest strength at which every one of the twenty
+    /// fills keeps at least 1.75:1 against it — below that the edge starts dissolving into
+    /// the lighter hearts, and at the 35% it began life as, ten of twenty lost their
+    /// boundary while the outline itself only managed 2.42:1.
+    ///
+    /// Transparent in Dark Cosmic, where the fills clear 3:1 on their own (3.29:1).
+    static let plotMarkerOutline = adaptiveInk(
+        lightAlpha: plotMarkerOutlineLightAlpha,
+        darkAlpha: 0
+    )
+
+    /// Exposed because the whole accessibility argument for keeping pastel fills in light
+    /// mode rests on this number. `HeartPaletteSeparabilityTests` measures it.
+    static let plotMarkerOutlineLightAlpha: Double = 0.70
 
     // MARK: - Spacing
 

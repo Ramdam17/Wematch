@@ -11,14 +11,16 @@ enum WatchHeartPalette {
     // members opt out. `colors` stays isolated: only views read it.
     nonisolated static let count = 20
 
+    // Must match WematchTheme.heartColorHexes exactly: the phone and the watch draw the
+    // same room, so a slot has to be the same hue on both.
     private static let hexes: [String] = [
-        "FF6B9D", "C084FC", "67E8F9",
-        "F472B6", "A78BFA", "34D399",
-        "FBBF24", "FB923C", "F87171",
-        "818CF8", "6EE7B7", "FDE68A",
-        "93C5FD", "FCA5A5", "86EFAC",
-        "FDA4AF", "D8B4FE", "5EEAD4",
-        "FCD34D", "A5B4FC",
+        "D3698D", "FA4249", "EFBBA9",
+        "FAAA42", "D5C66D", "DCFA42",
+        "CFF8A0", "6EFA42", "79D87F",
+        "B0E8C4", "42FABC", "5EF7F2",
+        "42CAFA", "4A94F2", "425BFA",
+        "B9B0E8", "9D6DD5", "E497FC",
+        "FA42EF", "E8B0D4",
     ]
 
     static let colors: [Color] = hexes.map { Color(hex: $0) }

@@ -46,24 +46,35 @@ struct HeartIcon: View {
     }
 }
 
-#Preview {
+/// The whole palette at plot scale, which is the only way to judge whether twenty
+/// participants would actually be tellable apart.
+#Preview("Palette — all 20 slots") {
     ZStack {
         WematchTheme.backgroundGradient.ignoresSafeArea()
-        VStack(spacing: 24) {
-            HStack(spacing: 20) {
-                HeartIcon(color: WematchTheme.heartColors[0], size: 40)
-                HeartIcon(color: WematchTheme.heartColors[1], size: 40, showGlow: true)
-                HeartIcon(color: WematchTheme.heartColors[2], size: 40, showGlow: true)
-            }
-            HStack(spacing: 20) {
-                ForEach([0, 7, 12], id: \.self) { slot in
-                    HeartIcon(
-                        color: WematchTheme.heartColors[slot],
-                        size: 28,
-                        showOutline: true
-                    )
+        VStack(spacing: 18) {
+            ForEach(0..<4, id: \.self) { row in
+                HStack(spacing: 18) {
+                    ForEach(0..<5, id: \.self) { column in
+                        let slot = row * 5 + column
+                        HeartIcon(
+                            color: WematchTheme.heartColors[slot],
+                            size: 28,
+                            showOutline: true
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+#Preview("HeartIcon states") {
+    ZStack {
+        WematchTheme.backgroundGradient.ignoresSafeArea()
+        HStack(spacing: 20) {
+            HeartIcon(color: WematchTheme.heartColors[0], size: 40)
+            HeartIcon(color: WematchTheme.heartColors[1], size: 40, showGlow: true)
+            HeartIcon(color: WematchTheme.heartColors[2], size: 40, showOutline: true)
         }
     }
 }

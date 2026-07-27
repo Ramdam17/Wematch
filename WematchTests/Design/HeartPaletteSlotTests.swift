@@ -68,18 +68,16 @@ final class HeartPaletteSlotTests: XCTestCase {
 
     // MARK: - Palette
 
-    func testPaletteCoversEverySlotInBothModes() {
+    func testPaletteCoversEverySlot() {
         XCTAssertEqual(WematchTheme.heartColors.count, HeartPaletteSlot.count)
-        XCTAssertEqual(WematchTheme.heartColorHexesLight.count, HeartPaletteSlot.count)
-        XCTAssertEqual(WematchTheme.heartColorHexesDark.count, HeartPaletteSlot.count)
+        XCTAssertEqual(WematchTheme.heartColorHexes.count, HeartPaletteSlot.count)
     }
 
-    func testLightAndDarkPalettesAreDistinct() {
-        // A slot resolving to the same hue in both modes would mean a pastel left
-        // unfixed for light mode, where all twenty failed the 3:1 floor.
-        for (light, dark) in zip(WematchTheme.heartColorHexesLight, WematchTheme.heartColorHexesDark) {
-            XCTAssertNotEqual(light, dark)
-        }
+    func testEveryHueInThePaletteIsDistinct() {
+        // A duplicated hex would silently merge two participants. Perceptual separation
+        // is a stronger property and is checked by HeartPaletteSeparabilityTests; this
+        // catches the crude case of a copy-paste.
+        XCTAssertEqual(Set(WematchTheme.heartColorHexes).count, HeartPaletteSlot.count)
     }
 
     // MARK: - Firebase Round Trip

@@ -11,7 +11,7 @@ struct SignInView: View {
             VStack(spacing: WematchTheme.paddingLarge) {
                 Spacer()
 
-                HeartIcon(color: Color(hex: "FF6B9D"), size: 80, showGlow: true)
+                HeartIcon(color: WematchTheme.brandHeart, size: 80, showGlow: true)
 
                 VStack(spacing: WematchTheme.paddingSmall) {
                     Text("Wematch")
