@@ -20,6 +20,11 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
     /// Set by WatchRoomViewModel to receive room updates from iPhone.
     var roomUpdateHandler: ((WatchRoomUpdate) -> Void)?
 
+    /// Called when the iPhone pushes a fresh dashboard snapshot. Separate from
+    /// `roomUpdateHandler` because it outlives any room: the dashboard is readable
+    /// whether or not a session is running.
+    var dashboardUpdateHandler: ((WatchDashboardSnapshot) -> Void)?
+
     private override init() {
         super.init()
     }
@@ -100,6 +105,12 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
             if let update = WatchRoomUpdate(from: message) {
                 DispatchQueue.main.async { [weak self] in
                     self?.roomUpdateHandler?(update)
+                }
+            }
+        case "dashboardUpdate":
+            if let snapshot = WatchDashboardSnapshot(message: message) {
+                DispatchQueue.main.async { [weak self] in
+                    self?.dashboardUpdateHandler?(snapshot)
                 }
             }
         default:

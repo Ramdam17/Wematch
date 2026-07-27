@@ -12,7 +12,7 @@ import Foundation
 /// - Track longest sync streak (consecutive syncs in a session)
 /// - Show "most synced with" leaderboard
 /// - Compute sync frequency trends over time
-struct SyncEvent: Identifiable, Codable, Sendable {
+struct SyncEvent: Identifiable, Codable, Equatable, Sendable {
     /// Unique identifier for this sync event.
     let id: String
 

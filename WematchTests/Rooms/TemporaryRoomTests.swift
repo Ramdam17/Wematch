@@ -127,6 +127,7 @@ final class TemporaryRoomTests: XCTestCase {
             tempRoomRepository: tempRepo,
             healthKitService: MockHealthKitService(),
             watchService: MockWatchService(),
+            dashboardStore: InMemoryDashboardRecordStore(),
             authManager: authManager
         )
 
