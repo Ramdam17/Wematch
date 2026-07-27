@@ -98,8 +98,13 @@ enum WematchTheme {
         on: adaptive(light: "155E75", dark: "CFFAFE")
     )
 
+    /// The one tint whose light fill is a step darker than the others (`purple/200`,
+    /// not `purple/50`). The other four fills separate from the lavender background by
+    /// hue alone — none of them has meaningful luminance separation either. A purple
+    /// tint on a purple background cannot, so it takes the luminance step instead;
+    /// text still measures 6.41:1.
     static let tintAccent = TintPair(
-        fill: adaptive(light: "F3E8FF", dark: "6B21A8"),
+        fill: adaptive(light: "E9D5FF", dark: "6B21A8"),
         on: adaptive(light: "6B21A8", dark: "F3E8FF")
     )
 
