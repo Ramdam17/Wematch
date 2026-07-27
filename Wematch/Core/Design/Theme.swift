@@ -55,6 +55,13 @@ enum WematchTheme {
         endPoint: .bottomTrailing
     )
 
+    /// `bg/1` on its own, as an opaque surface.
+    ///
+    /// The gradient's middle stop doubles as the recessed track of controls that sit on
+    /// glass — Figma's `.segmented` pill. Named separately because reaching for
+    /// `backgroundColors[1]` at a call site says nothing about why that stop.
+    static let surfaceInset = backgroundColors[1]
+
     // MARK: - Action Gradient
 
     /// Gradient for interactive surfaces and the HUD's hero number

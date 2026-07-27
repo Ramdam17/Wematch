@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AuthenticationManager.self) private var authManager
+    @Environment(ThemeController.self) private var themeController
     @State private var viewModel: SettingsViewModel?
     @ScaledMetric(relativeTo: .largeTitle) private var profileIconSize = 56
     @ScaledMetric(relativeTo: .title) private var dashboardIconSize = 24
@@ -14,6 +15,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: WematchTheme.paddingMedium) {
                         profileSection(viewModel)
+                        themeSection(viewModel)
                         dashboardSection()
                         accountSection(viewModel)
                     }
@@ -24,7 +26,10 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .task {
             if viewModel == nil {
-                viewModel = SettingsViewModel(authManager: authManager)
+                viewModel = SettingsViewModel(
+                    authManager: authManager,
+                    themeController: themeController
+                )
             }
         }
         .alert("Error", isPresented: .init(
@@ -81,6 +86,21 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func themeSection(_ viewModel: SettingsViewModel) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Theme")
+                    .font(WematchTypography.body)
+                    .foregroundStyle(WematchTheme.textPrimary)
+
+                ThemePicker(selection: viewModel.themePreference) { theme in
+                    viewModel.selectTheme(theme)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

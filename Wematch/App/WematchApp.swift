@@ -4,6 +4,7 @@ import OSLog
 @main
 struct WematchApp: App {
     @State private var authManager: AuthenticationManager
+    @State private var themeController: ThemeController
 
     init() {
         // Firebase MUST be configured before anything Firebase-adjacent is
@@ -12,6 +13,7 @@ struct WematchApp: App {
         FirebaseManager.shared.configure()
         PhoneSessionManager.shared.activate()
         _authManager = State(initialValue: AuthenticationManager())
+        _themeController = State(initialValue: ThemeController())
         Log.general.info("Wematch app launched")
     }
 
@@ -33,7 +35,12 @@ struct WematchApp: App {
                 }
             }
             .environment(authManager)
+            .environment(themeController)
             .environment(\.featureFlagProvider, LocalFeatureFlagProvider())
+            // Applied at the root so it reaches the window: UIKit-backed surfaces
+            // (materials, the status bar, native dialogs) follow the trait collection,
+            // not just the SwiftUI environment.
+            .preferredColorScheme(themeController.preferredColorScheme)
             .task { await authManager.restoreSession() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 wakeUpWatchApp()
