@@ -111,9 +111,8 @@ struct RoomView: View {
                         .font(.system(size: 16))
 
                     Text("\(Int(viewModel.ownHeartRate))")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(WematchTheme.primaryGradient)
+                        .font(WematchTypography.hudNumberLarge)
+                        .foregroundStyle(WematchTheme.actionGradient)
                         .contentTransition(.numericText())
                         .animation(.easeInOut(duration: 0.3), value: Int(viewModel.ownHeartRate))
 
@@ -136,7 +135,7 @@ struct RoomView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(WematchTheme.textSecondary)
                     Text("\(viewModel.allParticipantsForPlot.count)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(WematchTypography.hudNumberSmall)
                         .foregroundStyle(WematchTheme.textSecondary)
                 }
                 .accessibilityElement(children: .ignore)
@@ -149,7 +148,7 @@ struct RoomView: View {
                 } label: {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color(hex: "F87171"))
+                        .foregroundStyle(WematchTheme.tintDanger.on)
                         .padding(8)
                         .background(.ultraThinMaterial, in: Circle())
                 }
@@ -172,10 +171,10 @@ struct RoomView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "link")
                         .font(.system(size: 11))
-                        .foregroundStyle(Color(hex: "A78BFA"))
+                        .foregroundStyle(WematchTheme.tintAccent.on)
                     Text("\(maxChain)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color(hex: "A78BFA"))
+                        .font(WematchTypography.hudNumberSmall)
+                        .foregroundStyle(WematchTheme.tintAccent.on)
                 }
             }
 
@@ -184,10 +183,10 @@ struct RoomView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 11))
-                        .foregroundStyle(Color(hex: "34D399"))
+                        .foregroundStyle(WematchTheme.tintSuccess.on)
                     Text("\(syncedIDs.count)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color(hex: "34D399"))
+                        .font(WematchTypography.hudNumberSmall)
+                        .foregroundStyle(WematchTheme.tintSuccess.on)
                 }
             }
         }

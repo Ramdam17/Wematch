@@ -86,7 +86,7 @@ struct GroupDetailView: View {
 
                     StatusBadge(
                         text: viewModel.isAdmin ? "Admin" : "Member",
-                        style: viewModel.isAdmin ? .admin : .member
+                        style: viewModel.isAdmin ? .accent : .success
                     )
                 }
 
@@ -190,7 +190,7 @@ struct GroupDetailView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .padding(.horizontal, WematchTheme.paddingLarge)
-            .background(WematchTheme.primaryGradient)
+            .background(WematchTheme.actionGradient)
             .clipShape(Capsule())
         }
     }

@@ -31,14 +31,14 @@ struct FriendRowView: View {
                     } label: {
                         Image(systemName: "heart.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(WematchTheme.primaryGradient)
+                            .foregroundStyle(WematchTheme.actionGradient)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Start room with \(profile.username)")
                     .accessibilityHint("Opens a 1-on-1 heart rate room")
                 }
 
-                StatusBadge(text: "Friends", style: .friends)
+                StatusBadge(text: "Friends", style: .info)
             }
         }
     }

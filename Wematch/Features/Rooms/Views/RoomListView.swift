@@ -118,7 +118,7 @@ struct RoomListView: View {
                 Image(systemName: "heart.circle.fill")
                     .font(.title2)
                     .foregroundStyle(
-                        WematchTheme.primaryGradient
+                        WematchTheme.actionGradient
                     )
             }
         }
@@ -146,7 +146,7 @@ struct RoomListView: View {
 
                 Spacer()
 
-                StatusBadge(text: "1-on-1", style: .custom(Color(hex: "EC4899")))
+                StatusBadge(text: "1-on-1", style: .accent)
             }
         }
     }
