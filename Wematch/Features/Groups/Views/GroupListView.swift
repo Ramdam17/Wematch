@@ -5,6 +5,19 @@ struct GroupListView: View {
     @State private var viewModel: GroupListViewModel?
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
+    @State private var pendingAction: PendingGroupAction?
+
+    /// A destructive group action waiting to be confirmed. Carries the kind as well as the
+    /// group, because the same swipe offers Delete to an admin and Leave to everyone else.
+    private struct PendingGroupAction: Identifiable {
+        enum Kind: String { case delete, leave }
+
+        let group: Group
+        let kind: Kind
+
+        var id: String { "\(kind.rawValue)-\(group.id)" }
+    }
+
     var body: some View {
         ZStack {
             AnimatedBackground()
@@ -64,6 +77,24 @@ struct GroupListView: View {
         } message: {
             Text(viewModel?.error?.localizedDescription ?? "")
         }
+        .destructiveConfirmation(
+            item: $pendingAction,
+            title: { $0.kind == .delete ? "Delete \($0.group.name)?" : "Leave \($0.group.name)?" },
+            message: {
+                $0.kind == .delete
+                    ? "This permanently deletes the group and notifies all members."
+                    : "You'll stop seeing this group's rooms. You can rejoin with the code."
+            },
+            confirmLabel: { $0.kind == .delete ? "Delete" : "Leave" },
+            action: { pending in
+                Task {
+                    switch pending.kind {
+                    case .delete: await viewModel?.deleteGroup(id: pending.group.id)
+                    case .leave: await viewModel?.leaveGroup(id: pending.group.id)
+                    }
+                }
+            }
+        )
     }
 
     // MARK: - Subviews
@@ -91,13 +122,13 @@ struct GroupListView: View {
                     .swipeActions(edge: .trailing) {
                         if viewModel.isAdmin(group) {
                             Button(role: .destructive) {
-                                Task { await viewModel.deleteGroup(id: group.id) }
+                                pendingAction = PendingGroupAction(group: group, kind: .delete)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
                         } else {
                             Button(role: .destructive) {
-                                Task { await viewModel.leaveGroup(id: group.id) }
+                                pendingAction = PendingGroupAction(group: group, kind: .leave)
                             } label: {
                                 Label("Leave", systemImage: "rectangle.portrait.and.arrow.right")
                             }

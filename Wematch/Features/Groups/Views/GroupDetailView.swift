@@ -4,6 +4,8 @@ struct GroupDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: GroupDetailViewModel
     @State private var showDeleteConfirmation = false
+    @State private var showLeaveConfirmation = false
+    @State private var pendingRemoval: UserProfile?
     @State private var navigateToRoom = false
     private let authManager: AuthenticationManager
 
@@ -19,8 +21,7 @@ struct GroupDetailView: View {
             AnimatedBackground()
 
             if viewModel.isLoading {
-                ProgressView()
-                    .tint(Color(hex: "C084FC"))
+                LoadingState(message: "Loading the group…")
             } else {
                 ScrollView {
                     VStack(spacing: WematchTheme.paddingMedium) {
@@ -49,13 +50,31 @@ struct GroupDetailView: View {
         .onChange(of: viewModel.hasLeft) {
             if viewModel.hasLeft { dismiss() }
         }
-        .confirmationDialog("Delete Group", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
-                Task { await viewModel.deleteGroup() }
-            }
-        } message: {
-            Text("This will permanently delete the group and notify all members.")
+        .destructiveConfirmation(
+            "Delete \(viewModel.group.name)?",
+            message: "This permanently deletes the group and notifies all members.",
+            confirmLabel: "Delete",
+            isPresented: $showDeleteConfirmation
+        ) {
+            Task { await viewModel.deleteGroup() }
         }
+        .destructiveConfirmation(
+            "Leave \(viewModel.group.name)?",
+            message: "You'll stop seeing this group's rooms. You can rejoin with the code.",
+            confirmLabel: "Leave",
+            isPresented: $showLeaveConfirmation
+        ) {
+            Task { await viewModel.leaveGroup() }
+        }
+        .destructiveConfirmation(
+            item: $pendingRemoval,
+            title: { "Remove \($0.username)?" },
+            message: { "\($0.username) loses access to this group's rooms." },
+            confirmLabel: { _ in "Remove" },
+            action: { profile in
+                Task { await viewModel.removeMember(userID: profile.id) }
+            }
+        )
         .alert("Error", isPresented: .init(
             get: { viewModel.error != nil },
             set: { if !$0 { viewModel.error = nil } }
@@ -132,7 +151,7 @@ struct GroupDetailView: View {
                         isGroupAdmin: isProfileAdmin,
                         canRemove: canRemove
                     ) {
-                        Task { await viewModel.removeMember(userID: profile.id) }
+                        pendingRemoval = profile
                     }
 
                     if profile.id != viewModel.memberProfiles.last?.id {
@@ -217,7 +236,7 @@ struct GroupDetailView: View {
                 }
             } else {
                 Button(role: .destructive) {
-                    Task { await viewModel.leaveGroup() }
+                    showLeaveConfirmation = true
                 } label: {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")

@@ -12,6 +12,17 @@ struct FriendListView: View {
     @State private var showSearchSheet = false
     @State private var showRoom = false
     @State private var roomNavInfo: (roomID: String, roomName: String)?
+    @State private var pendingRemoval: PendingFriendRemoval?
+
+    /// A friendship waiting to be confirmed for removal. Holds the profile for the copy and
+    /// the friendship id for the call, since a swipe has both to hand.
+    private struct PendingFriendRemoval: Identifiable {
+        let profile: UserProfile
+        let friendshipID: String
+
+        var id: String { friendshipID }
+    }
+
     var body: some View {
         ZStack {
             AnimatedBackground()
@@ -83,6 +94,17 @@ struct FriendListView: View {
         } message: {
             Text(viewModel?.error?.localizedDescription ?? "")
         }
+        .destructiveConfirmation(
+            item: $pendingRemoval,
+            title: { "Remove \($0.profile.username)?" },
+            message: { _ in
+                "You'll both lose the 1-on-1 room. Either of you can send a new request."
+            },
+            confirmLabel: { _ in "Remove" },
+            action: { pending in
+                Task { await viewModel?.removeFriend(friendshipID: pending.friendshipID) }
+            }
+        )
     }
 
     // MARK: - Friends Tab
@@ -108,7 +130,10 @@ struct FriendListView: View {
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    Task { await viewModel.removeFriend(friendshipID: friendship.id) }
+                                    pendingRemoval = PendingFriendRemoval(
+                                        profile: profile,
+                                        friendshipID: friendship.id
+                                    )
                                 } label: {
                                     Label("Remove", systemImage: "person.badge.minus")
                                 }

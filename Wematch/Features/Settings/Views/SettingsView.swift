@@ -51,14 +51,8 @@ struct SettingsView: View {
                 ZStack {
                     Color.black.opacity(0.4).ignoresSafeArea()
                     GlassCard {
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                            Text("Deleting account...")
-                                .font(WematchTypography.headline)
-                                .foregroundStyle(WematchTheme.textPrimary)
-                        }
-                        .padding()
+                        LoadingState(message: "Deleting your account…")
+                            .padding()
                     }
                     .frame(width: 200)
                 }

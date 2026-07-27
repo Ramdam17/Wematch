@@ -22,8 +22,7 @@ struct WematchApp: App {
                 case .unknown:
                     ZStack {
                         AnimatedBackground()
-                        ProgressView()
-                            .tint(WematchTheme.textPrimary)
+                        LoadingState(message: "Restoring your session…")
                     }
                 case .signedOut:
                     SignInView()

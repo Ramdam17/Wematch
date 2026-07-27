@@ -3,6 +3,7 @@ import SwiftUI
 struct RoomView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: RoomViewModel
+    @State private var showLeaveConfirmation = false
 
     init(roomID: String, roomName: String, authManager: AuthenticationManager) {
         self._viewModel = State(
@@ -29,14 +30,24 @@ struct RoomView: View {
             }
             .padding(.horizontal, WematchTheme.paddingSmall)
             .padding(.bottom, WematchTheme.paddingSmall)
+
+            if let sharingWarning = viewModel.sharingWarning {
+                VStack {
+                    ErrorToast(message: sharingWarning, severity: .warning)
+                        .padding(.top, WematchTheme.paddingSmall)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
+        .animation(.spring(duration: 0.3), value: viewModel.sharingWarning)
         .navigationTitle(viewModel.roomName)
         .navigationBarBackButtonHidden(viewModel.isInRoom)
         .toolbar {
             if viewModel.isInRoom {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        Task { await leaveRoom() }
+                        showLeaveConfirmation = true
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
@@ -66,18 +77,20 @@ struct RoomView: View {
         } message: {
             Text(viewModel.error?.localizedDescription ?? "")
         }
+        .destructiveConfirmation(
+            "Leave this room?",
+            message: "Your heart will stop being shared with the group.",
+            confirmLabel: "Leave",
+            isPresented: $showLeaveConfirmation
+        ) {
+            Task { await leaveRoom() }
+        }
     }
 
     // MARK: - Loading
 
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .tint(Color(hex: "C084FC"))
-            Text("Joining room...")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-        }
+        LoadingState(message: "Joining the room…")
     }
 
     // MARK: - Room Content
@@ -144,7 +157,7 @@ struct RoomView: View {
 
                 // Leave button
                 Button {
-                    Task { await leaveRoom() }
+                    showLeaveConfirmation = true
                 } label: {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 14, weight: .medium))

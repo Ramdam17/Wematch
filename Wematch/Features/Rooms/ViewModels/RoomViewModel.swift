@@ -54,6 +54,12 @@ final class RoomViewModel {
     /// Timer task for star drift updates.
     private var starTimerTask: Task<Void, Never>?
 
+    /// Set while heart-rate writes are failing, cleared on the first one that lands.
+    ///
+    /// Separate from `error` on purpose: `error` presents a modal alert, which is the wrong
+    /// shape for a failure that repeats every second and needs no decision from the user.
+    private(set) var sharingWarning: String?
+
     // MARK: - Participant Color
 
     private var assignedSlot = HeartPaletteSlot(index: 0)
@@ -425,8 +431,14 @@ final class RoomViewModel {
                         username: currentUsername,
                         slot: assignedSlot
                     )
+                    // A single success means the room is seeing us again.
+                    sharingWarning = nil
                 } catch {
+                    // Surfaced, not just logged (audit D). Deliberately not thrown into
+                    // `error`: that drives a modal alert, and this fires once a second
+                    // while the network is down. One quiet banner, cleared on recovery.
                     Log.rooms.error("Failed to update HR: \(error.localizedDescription)")
+                    sharingWarning = "Your heart isn't reaching the room."
                 }
             }
         }
