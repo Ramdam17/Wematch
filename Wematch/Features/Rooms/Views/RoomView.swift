@@ -106,7 +106,7 @@ struct RoomView: View {
                 // Own BPM display
                 HStack(spacing: 6) {
                     Image(systemName: "heart.fill")
-                        .foregroundStyle(Color(hex: "FF6B9D"))
+                        .foregroundStyle(WematchTheme.heartColors[0])
                         .symbolEffect(.pulse, isActive: viewModel.ownHeartRate > 0)
                         .font(.system(size: 16))
 

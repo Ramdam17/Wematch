@@ -17,7 +17,7 @@ final class MockRoomRepository: RoomRepository, @unchecked Sendable {
     }
 
     func updateHeartRate(roomID: String, userID: String, data: HeartRateData,
-                         username: String, color: String) async throws {}
+                         username: String, slot: HeartPaletteSlot) async throws {}
 
     func observeParticipants(roomID: String) -> AsyncStream<[RoomParticipant]> {
         AsyncStream { $0.finish() }

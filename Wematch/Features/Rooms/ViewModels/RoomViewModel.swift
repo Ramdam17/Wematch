@@ -56,7 +56,7 @@ final class RoomViewModel {
 
     // MARK: - Participant Color
 
-    private var assignedColor: String = "FF6B9D"
+    private var assignedSlot = HeartPaletteSlot(index: 0)
 
     // MARK: - Init
 
@@ -80,10 +80,12 @@ final class RoomViewModel {
         self.healthKitService = healthKitService ?? HealthKitHeartRateService()
         #endif
 
-        // Assign a color from the palette based on userID hash
+        // Claim a palette slot from the user ID. Stable across launches and devices,
+        // unlike the previous hashValue-based pick. Derived from the firebaseSafe form
+        // because that is the ID that travels: a decoder falling back to a local
+        // derivation then lands on this same slot rather than a neighbouring hue.
         if let userID = authManager.currentUserID {
-            let index = abs(userID.hashValue) % WematchTheme.heartColors.count
-            self.assignedColor = WematchTheme.heartColorHexes[index]
+            self.assignedSlot = HeartPaletteSlot(userID: userID.firebaseSafe())
         }
     }
 
@@ -112,7 +114,7 @@ final class RoomViewModel {
                     username: currentUsername,
                     currentHR: ownHeartRate,
                     previousHR: previousHeartRate,
-                    color: assignedColor
+                    slot: assignedSlot
                 ))
             }
         }
@@ -155,7 +157,7 @@ final class RoomViewModel {
         let participant = RoomParticipant(
             id: userID,
             username: currentUsername,
-            color: assignedColor
+            slot: assignedSlot
         )
 
         do {
@@ -353,7 +355,7 @@ final class RoomViewModel {
                 "id": p.id,
                 "currentHR": p.currentHR,
                 "previousHR": p.previousHR,
-                "color": p.color
+                "colorSlot": p.slot.index
             ]
         }
 
@@ -421,7 +423,7 @@ final class RoomViewModel {
                         userID: userID,
                         data: data,
                         username: currentUsername,
-                        color: assignedColor
+                        slot: assignedSlot
                     )
                 } catch {
                     Log.rooms.error("Failed to update HR: \(error.localizedDescription)")

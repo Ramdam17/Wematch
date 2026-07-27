@@ -130,7 +130,7 @@ struct RoomListView: View {
         GlassCard {
             HStack(spacing: 12) {
                 HeartIcon(
-                    color: Color(hex: "EC4899"),
+                    color: WematchTheme.heartColors[0],
                     size: 32,
                     showGlow: false
                 )

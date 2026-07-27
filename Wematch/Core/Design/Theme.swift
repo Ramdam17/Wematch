@@ -118,9 +118,10 @@ enum WematchTheme {
         on: adaptive(light: "991B1B", dark: "FEE2E2")
     )
 
-    // MARK: - Heart Palette (20 distinct colors)
+    // MARK: - Heart Palette (20 slots, bimodal)
 
-    static let heartColorHexes: [String] = [
+    /// Slot hues for Dark Cosmic — the vivid pastels the app was designed around.
+    static let heartColorHexesDark: [String] = [
         "FF6B9D", "C084FC", "67E8F9",
         "F472B6", "A78BFA", "34D399",
         "FBBF24", "FB923C", "F87171",
@@ -130,7 +131,31 @@ enum WematchTheme {
         "FCD34D", "A5B4FC",
     ]
 
-    static let heartColors: [Color] = heartColorHexes.map { Color(hex: $0) }
+    /// Slot hues for Pastel Light: each pastel darkened toward the 3:1 floor for a
+    /// graphical object, which all 20 pastels failed on a pale background (1.14–2.73:1).
+    ///
+    /// Two known limits, measured rather than assumed. Against `bg/0` these land at
+    /// 3.05–3.24:1, but against the full background set the worst is 2.80:1, so the
+    /// floor is not met everywhere. And darkening compressed the hue space: five pairs
+    /// sit under CIEDE2000 dE 2.2 — slots 9/14 at dE 0.6 are indistinguishable. Marker
+    /// identity survives because each heart also carries its username, but the palette
+    /// needs re-deriving under both constraints at once.
+    static let heartColorHexesLight: [String] = [
+        "FF3D7F", "B162FF", "039AAD",
+        "F543A0", "9572FC", "1E9C6E",
+        "B48200", "E36600", "FA4848",
+        "6F7CFB", "169E68", "A98700",
+        "268CFF", "FD4848", "119D44",
+        "FF465D", "B167FF", "119E88",
+        "B08700", "6680FE",
+    ]
+
+    static let heartColors: [Color] = zip(heartColorHexesLight, heartColorHexesDark)
+        .map { adaptive(light: $0, dark: $1) }
+
+    static func heartColor(for slot: HeartPaletteSlot) -> Color {
+        heartColors[slot.index]
+    }
 
     // MARK: - Plot Chrome
 

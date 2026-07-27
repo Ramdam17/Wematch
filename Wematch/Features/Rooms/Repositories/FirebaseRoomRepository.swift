@@ -58,11 +58,11 @@ final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
         Log.rooms.info("Left room \(roomID)")
     }
 
-    func updateHeartRate(roomID: String, userID: String, data: HeartRateData, username: String, color: String) async throws {
+    func updateHeartRate(roomID: String, userID: String, data: HeartRateData, username: String, slot: HeartPaletteSlot) async throws {
         let path = userPath(roomID, userID)
         var value = data.firebaseDictionary
         value["username"] = username
-        value["color"] = color
+        value["colorSlot"] = slot.index
         try await firebaseService.write(path: path, value: value)
     }
 
