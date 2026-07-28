@@ -26,7 +26,8 @@ final class RoomLifecycleTests: XCTestCase {
 
     private func makeViewModel(auth: AuthenticationManager,
                                roomRepo: MockRoomRepository = MockRoomRepository(),
-                               tempRepo: SpyTemporaryRoomRepository = SpyTemporaryRoomRepository()
+                               tempRepo: SpyTemporaryRoomRepository = SpyTemporaryRoomRepository(),
+                               dashboardStore: InMemoryDashboardRecordStore = InMemoryDashboardRecordStore()
     ) -> RoomViewModel {
         RoomViewModel(
             roomID: "room1",
@@ -35,8 +36,64 @@ final class RoomLifecycleTests: XCTestCase {
             tempRoomRepository: tempRepo,
             healthKitService: MockHealthKitService(),
             watchService: MockWatchService(),
+            // Injected, or the room would write real records into the test host's
+            // Application Support on every run.
+            dashboardStore: dashboardStore,
             authManager: auth
         )
+    }
+
+    // MARK: - Dashboard recording
+
+    func testLeavingARoomRecordsTheSession() async {
+        let (auth, _) = await makeSignedInAuth()
+        let store = InMemoryDashboardRecordStore()
+        let viewModel = makeViewModel(auth: auth, dashboardStore: store)
+
+        await viewModel.enterRoom()
+        await viewModel.exitRoom()
+
+        let records = try? store.load()
+        XCTAssertEqual(records?.sessions.count, 1, "a room the user actually entered must leave a trace")
+        XCTAssertEqual(records?.sessions.first?.roomID, "room1")
+        XCTAssertNotNil(records?.sessions.first?.leftAt, "the session has to be closed, not left open")
+    }
+
+    /// Sign-out mid-room is the scenario audit C1 was about; the local history it
+    /// produced still belongs to the user, and writing it needs no session.
+    func testASessionEndedBySignOutIsStillRecorded() async {
+        let (auth, _) = await makeSignedInAuth()
+        let store = InMemoryDashboardRecordStore()
+        let viewModel = makeViewModel(auth: auth, dashboardStore: store)
+
+        await viewModel.enterRoom()
+        auth.signOut()
+        await viewModel.exitRoom()
+
+        XCTAssertEqual(try? store.load().sessions.count, 1)
+    }
+
+    func testAFailedWriteDoesNotBlockLeavingTheRoom() async {
+        let (auth, _) = await makeSignedInAuth()
+        let store = InMemoryDashboardRecordStore()
+        store.appendError = NSError(domain: "disk", code: 28)
+        let viewModel = makeViewModel(auth: auth, dashboardStore: store)
+
+        await viewModel.enterRoom()
+        await viewModel.exitRoom()
+
+        XCTAssertEqual(store.appendCallCount, 1, "it must have tried")
+        XCTAssertFalse(viewModel.isInRoom, "but a dashboard write must never trap the user in a room")
+    }
+
+    func testExitingWithoutEverEnteringRecordsNothing() async {
+        let (auth, _) = await makeSignedInAuth()
+        let store = InMemoryDashboardRecordStore()
+        let viewModel = makeViewModel(auth: auth, dashboardStore: store)
+
+        await viewModel.exitRoom()
+
+        XCTAssertEqual(store.appendCallCount, 0)
     }
 
     // MARK: - C1: teardown without a session

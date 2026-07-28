@@ -3,6 +3,7 @@ import SwiftUI
 struct RoomView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: RoomViewModel
+    @State private var showLeaveConfirmation = false
 
     init(roomID: String, roomName: String, authManager: AuthenticationManager) {
         self._viewModel = State(
@@ -29,14 +30,24 @@ struct RoomView: View {
             }
             .padding(.horizontal, WematchTheme.paddingSmall)
             .padding(.bottom, WematchTheme.paddingSmall)
+
+            if let sharingWarning = viewModel.sharingWarning {
+                VStack {
+                    ErrorToast(message: sharingWarning, severity: .warning)
+                        .padding(.top, WematchTheme.paddingSmall)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
+        .animation(.spring(duration: 0.3), value: viewModel.sharingWarning)
         .navigationTitle(viewModel.roomName)
         .navigationBarBackButtonHidden(viewModel.isInRoom)
         .toolbar {
             if viewModel.isInRoom {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        Task { await leaveRoom() }
+                        showLeaveConfirmation = true
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
@@ -66,18 +77,20 @@ struct RoomView: View {
         } message: {
             Text(viewModel.error?.localizedDescription ?? "")
         }
+        .destructiveConfirmation(
+            "Leave this room?",
+            message: "Your heart will stop being shared with the group.",
+            confirmLabel: "Leave",
+            isPresented: $showLeaveConfirmation
+        ) {
+            Task { await leaveRoom() }
+        }
     }
 
     // MARK: - Loading
 
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .tint(Color(hex: "C084FC"))
-            Text("Joining room...")
-                .font(WematchTypography.body)
-                .foregroundStyle(WematchTheme.textSecondary)
-        }
+        LoadingState(message: "Joining the room…")
     }
 
     // MARK: - Room Content
@@ -106,14 +119,13 @@ struct RoomView: View {
                 // Own BPM display
                 HStack(spacing: 6) {
                     Image(systemName: "heart.fill")
-                        .foregroundStyle(Color(hex: "FF6B9D"))
+                        .foregroundStyle(WematchTheme.heartColors[0])
                         .symbolEffect(.pulse, isActive: viewModel.ownHeartRate > 0)
                         .font(.system(size: 16))
 
                     Text("\(Int(viewModel.ownHeartRate))")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(WematchTheme.primaryGradient)
+                        .font(WematchTypography.hudNumberLarge)
+                        .foregroundStyle(WematchTheme.actionGradient)
                         .contentTransition(.numericText())
                         .animation(.easeInOut(duration: 0.3), value: Int(viewModel.ownHeartRate))
 
@@ -136,7 +148,7 @@ struct RoomView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(WematchTheme.textSecondary)
                     Text("\(viewModel.allParticipantsForPlot.count)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(WematchTypography.hudNumberSmall)
                         .foregroundStyle(WematchTheme.textSecondary)
                 }
                 .accessibilityElement(children: .ignore)
@@ -145,11 +157,11 @@ struct RoomView: View {
 
                 // Leave button
                 Button {
-                    Task { await leaveRoom() }
+                    showLeaveConfirmation = true
                 } label: {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color(hex: "F87171"))
+                        .foregroundStyle(WematchTheme.tintDanger.on)
                         .padding(8)
                         .background(.ultraThinMaterial, in: Circle())
                 }
@@ -172,10 +184,10 @@ struct RoomView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "link")
                         .font(.system(size: 11))
-                        .foregroundStyle(Color(hex: "A78BFA"))
+                        .foregroundStyle(WematchTheme.tintAccent.on)
                     Text("\(maxChain)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color(hex: "A78BFA"))
+                        .font(WematchTypography.hudNumberSmall)
+                        .foregroundStyle(WematchTheme.tintAccent.on)
                 }
             }
 
@@ -184,10 +196,10 @@ struct RoomView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 11))
-                        .foregroundStyle(Color(hex: "34D399"))
+                        .foregroundStyle(WematchTheme.tintSuccess.on)
                     Text("\(syncedIDs.count)")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color(hex: "34D399"))
+                        .font(WematchTypography.hudNumberSmall)
+                        .foregroundStyle(WematchTheme.tintSuccess.on)
                 }
             }
         }

@@ -19,7 +19,7 @@ struct GradientButton: View {
                 .frame(maxWidth: isFullWidth ? .infinity : nil)
                 .padding(.vertical, 14)
                 .padding(.horizontal, WematchTheme.paddingLarge)
-                .background(WematchTheme.primaryGradient)
+                .background(WematchTheme.actionGradient)
                 .clipShape(Capsule())
         }
     }

@@ -40,7 +40,7 @@ struct RoomListView: View {
 
     private var emptyStateView: some View {
         VStack(spacing: 16) {
-            HeartIcon(color: Color(hex: "FF6B9D"), size: 48, showGlow: true)
+            HeartIcon(color: WematchTheme.brandHeart, size: 48, showGlow: true)
                 .accessibilityHidden(true)
             Text("No Rooms Yet")
                 .font(WematchTypography.title2)
@@ -99,9 +99,10 @@ struct RoomListView: View {
         GlassCard {
             HStack(spacing: 12) {
                 HeartIcon(
-                    color: Color(hex: "C084FC"),
+                    color: WematchTheme.heartColors[1],
                     size: 32,
-                    showGlow: false
+                    showGlow: false,
+                    showOutline: true
                 )
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -118,7 +119,7 @@ struct RoomListView: View {
                 Image(systemName: "heart.circle.fill")
                     .font(.title2)
                     .foregroundStyle(
-                        WematchTheme.primaryGradient
+                        WematchTheme.actionGradient
                     )
             }
         }
@@ -130,9 +131,10 @@ struct RoomListView: View {
         GlassCard {
             HStack(spacing: 12) {
                 HeartIcon(
-                    color: Color(hex: "EC4899"),
+                    color: WematchTheme.heartColors[0],
                     size: 32,
-                    showGlow: false
+                    showGlow: false,
+                    showOutline: true
                 )
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -146,7 +148,7 @@ struct RoomListView: View {
 
                 Spacer()
 
-                StatusBadge(text: "1-on-1", style: .custom(Color(hex: "EC4899")))
+                StatusBadge(text: "1-on-1", style: .accent)
             }
         }
     }

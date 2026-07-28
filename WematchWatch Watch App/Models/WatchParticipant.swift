@@ -4,13 +4,14 @@ struct WatchParticipant: Identifiable, Sendable {
     let id: String
     var currentHR: Double
     var previousHR: Double
-    let color: String
+    /// Palette slot, resolved locally — the phone sends the slot, not a colour.
+    let colorSlot: Int
 
-    init(id: String, currentHR: Double, previousHR: Double, color: String) {
+    init(id: String, currentHR: Double, previousHR: Double, colorSlot: Int) {
         self.id = id
         self.currentHR = currentHR
         self.previousHR = previousHR
-        self.color = color
+        self.colorSlot = WatchHeartPalette.wrap(colorSlot)
     }
 
     /// Initialize from a WatchConnectivity dictionary sent by iPhone.
@@ -19,7 +20,10 @@ struct WatchParticipant: Identifiable, Sendable {
         self.id = id
         self.currentHR = dictionary["currentHR"] as? Double ?? 0
         self.previousHR = dictionary["previousHR"] as? Double ?? 0
-        self.color = dictionary["color"] as? String ?? "FF6B9D"
+        // A payload without a slot only comes from a phone build predating it; deriving
+        // it from the ID lands on the same hue the phone would have sent.
+        self.colorSlot = (dictionary["colorSlot"] as? Int).map(WatchHeartPalette.wrap)
+            ?? WatchHeartPalette.slot(forUserID: id)
     }
 }
 

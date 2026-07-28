@@ -75,7 +75,7 @@ struct ClusterCircleView: View {
     private var clusterColor: Color {
         let memberColors = cluster.memberIDs.compactMap { memberID -> Color? in
             guard let participant = participants.first(where: { $0.id == memberID }) else { return nil }
-            return Color(hex: participant.color)
+            return WematchTheme.heartColor(for: participant.slot)
         }
 
         guard !memberColors.isEmpty else { return .white }

@@ -27,7 +27,7 @@ struct GroupRowView: View {
 
                 StatusBadge(
                     text: isAdmin ? "Admin" : "Member",
-                    style: isAdmin ? .admin : .member
+                    style: isAdmin ? .accent : .success
                 )
             }
         }

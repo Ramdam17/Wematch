@@ -10,7 +10,7 @@ struct HeartMarkerView: View {
     @State private var currentPosition: CGPoint
 
     private var heartSize: CGFloat { isOwnHeart ? 28 : 20 }
-    private var color: Color { Color(hex: participant.color) }
+    private var color: Color { WematchTheme.heartColor(for: participant.slot) }
 
     init(participant: RoomParticipant, targetPosition: CGPoint, isOwnHeart: Bool) {
         self.participant = participant
@@ -25,7 +25,7 @@ struct HeartMarkerView: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            HeartIcon(color: color, size: heartSize, showGlow: isOwnHeart)
+            HeartIcon(color: color, size: heartSize, showGlow: isOwnHeart, showOutline: true)
 
             Text(participant.username)
                 .font(.system(size: 8, weight: .medium, design: .rounded))

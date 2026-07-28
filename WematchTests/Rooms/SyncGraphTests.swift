@@ -11,7 +11,8 @@ final class SyncGraphTests: XCTestCase {
     // MARK: - Helpers
 
     private func participant(_ id: String, hr: Double, prev: Double) -> RoomParticipant {
-        RoomParticipant(id: id, username: id, currentHR: hr, previousHR: prev, color: "FF6B9D")
+        RoomParticipant(id: id, username: id, currentHR: hr, previousHR: prev,
+                        slot: HeartPaletteSlot(userID: id))
     }
 
     // MARK: - Distance & Edges

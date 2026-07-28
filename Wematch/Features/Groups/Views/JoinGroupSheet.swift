@@ -80,8 +80,10 @@ struct JoinGroupSheet: View {
                     .textInputAutocapitalization(.characters)
 
                 if isLoading {
+                    // Stays a plain spinner: it sits where the submit button was, and a
+                    // pulsing heart at that size would shove the layout around.
                     ProgressView()
-                        .tint(Color(hex: "C084FC"))
+                        .tint(WematchTheme.brandHeart)
                 } else {
                     GradientButton("Join") {
                         Task { await sendJoinRequest() }

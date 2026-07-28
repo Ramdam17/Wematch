@@ -15,8 +15,7 @@ struct UserSearchSheet: View {
                 if viewModel.searchText.isEmpty {
                     promptView
                 } else if viewModel.isSearching {
-                    ProgressView()
-                        .tint(Color(hex: "C084FC"))
+                    LoadingState(message: "Searching…")
                 } else if viewModel.results.isEmpty {
                     noResultsView
                 } else {
