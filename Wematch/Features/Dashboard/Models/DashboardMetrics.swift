@@ -59,6 +59,14 @@ struct DashboardMetrics: Sendable {
     /// The person the user has spent the most time in sync with, if there is one.
     let bestPartner: SyncPartnerTotal?
 
+    /// Sync stars the user has actually watched appear.
+    ///
+    /// Summed from the sessions, **not** derived from `totalSyncEvents`. A star marks one
+    /// new pair coming into sync; an event covers a whole cluster over a stretch of time.
+    /// Counting events would report how often the cluster changed shape, which is not what
+    /// anyone saw happen.
+    let totalStars: Int
+
     /// The largest number of people simultaneously in one sync cluster with the user.
     ///
     /// The Watch's "Biggest cluster". Counts the whole cluster, the user included, which
@@ -99,6 +107,7 @@ struct DashboardMetrics: Sendable {
             longestSyncDuration: syncDurations.max() ?? 0,
             uniqueSyncPartners: partnerIDs.count,
             bestPartner: Self.bestPartner(from: syncEvents, userID: userID, asOf: reference),
+            totalStars: sessions.reduce(0) { $0 + $1.starsSpawned },
             maxClusterSize: Self.maxClusterSize(from: syncEvents)
         )
     }

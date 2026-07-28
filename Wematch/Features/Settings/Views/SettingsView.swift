@@ -106,19 +106,19 @@ struct SettingsView: View {
 
     private func dashboardSection() -> some View {
         NavigationLink {
-            DashboardPlaceholderView()
+            DashboardView()
         } label: {
             GlassCard {
                 HStack {
                     Image(systemName: "chart.xyaxis.line")
                         .font(.system(size: dashboardIconSize))
-                        .foregroundStyle(Color(hex: "F472B6").gradient)
+                        .foregroundStyle(WematchTheme.brandHeart.gradient)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Dashboard")
                             .font(WematchTypography.headline)
                             .foregroundStyle(WematchTheme.textPrimary)
-                        Text("Coming Soon")
+                        Text("Your sync history")
                             .font(WematchTypography.caption)
                             .foregroundStyle(WematchTheme.textSecondary)
                     }

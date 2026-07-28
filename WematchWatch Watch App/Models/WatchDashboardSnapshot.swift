@@ -60,6 +60,12 @@ struct WatchDashboardSnapshot: Equatable, Sendable {
     /// Written out rather than left to a formatter because the Watch renders this at 22pt
     /// in a 348pt-wide row: `DateComponentsFormatter` would happily produce
     /// "3 hours, 42 minutes" and blow the layout apart.
+    ///
+    /// Must match `DashboardViewModel.durationText` on the phone — the same history shown
+    /// two ways reads as two histories. Neither target can import the other, so the
+    /// contract is the table in
+    /// `DashboardViewModelTests.testTheDurationContractTheWatchIsAlsoWrittenAgainst`;
+    /// change both together.
     var connectedDurationText: String {
         let total = Int(connectedSeconds.rounded())
         guard total >= 60 else { return "\(total)s" }

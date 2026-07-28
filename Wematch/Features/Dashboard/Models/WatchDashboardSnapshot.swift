@@ -46,9 +46,7 @@ struct WatchDashboardSnapshot: Codable, Sendable, Equatable {
         return WatchDashboardSnapshot(
             bestPartnerName: partnerID.flatMap { records.displayNames[$0] },
             bestPartnerSlot: partnerID.map { HeartPaletteSlot(userID: $0).index },
-            // Stars are counted per session as they appear on screen, not derived from
-            // the sync events — see `SessionLog.starsSpawned`.
-            starsMade: records.sessions.reduce(0) { $0 + $1.starsSpawned },
+            starsMade: metrics.totalStars,
             connectedSeconds: metrics.connectedDuration,
             biggestCluster: metrics.maxClusterSize
         )
