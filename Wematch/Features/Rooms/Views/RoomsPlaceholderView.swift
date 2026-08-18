@@ -6,7 +6,7 @@ struct RoomsPlaceholderView: View {
             AnimatedBackground()
             GlassCard {
                 VStack(spacing: 16) {
-                    HeartIcon(color: Color(hex: "FF6B9D"), size: 48, showGlow: true)
+                    HeartIcon(color: WematchTheme.brandHeart, size: 48, showGlow: true)
                     Text("Rooms")
                         .font(WematchTypography.title)
                         .foregroundStyle(WematchTheme.textPrimary)

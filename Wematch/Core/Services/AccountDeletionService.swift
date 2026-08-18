@@ -10,6 +10,7 @@ final class AccountDeletionService: Sendable {
     private let profileRepository: any UserProfileRepository
     private let tempRoomRepository: any TemporaryRoomRepository
     private let firebaseAuth: any FirebaseAuthenticating
+    private let dashboardStore: any DashboardRecordStoring
 
     init(
         groupRepository: (any GroupRepository)? = nil,
@@ -18,7 +19,8 @@ final class AccountDeletionService: Sendable {
         inboxMessageRepository: (any InboxMessageRepository)? = nil,
         profileRepository: (any UserProfileRepository)? = nil,
         tempRoomRepository: (any TemporaryRoomRepository)? = nil,
-        firebaseAuth: (any FirebaseAuthenticating)? = nil
+        firebaseAuth: (any FirebaseAuthenticating)? = nil,
+        dashboardStore: (any DashboardRecordStoring)? = nil
     ) {
         self.groupRepository = groupRepository ?? FirestoreGroupRepository()
         self.friendRepository = friendRepository ?? FirestoreFriendRepository()
@@ -27,6 +29,7 @@ final class AccountDeletionService: Sendable {
         self.profileRepository = profileRepository ?? FirestoreUserProfileRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
         self.firebaseAuth = firebaseAuth ?? FirebaseAuthService()
+        self.dashboardStore = dashboardStore ?? DashboardRecordStore()
     }
 
     func deleteAllData(userID: String) async throws {
@@ -47,7 +50,12 @@ final class AccountDeletionService: Sendable {
         // 5. Clean up temp room Firebase indexes
         try await deleteTempRooms(userID: userID)
 
-        // 6. Delete user profile (Firestore: users/{uid} + username reservation)
+        // 6. Erase the on-device dashboard history. It never left the phone, so no
+        // server call can reach it — and it names the people the user synced with,
+        // which is exactly what "delete everything" has to cover.
+        try dashboardStore.deleteAll()
+
+        // 7. Delete user profile (Firestore: users/{uid} + username reservation)
         try await profileRepository.deleteProfile(userID: userID)
 
         // 7. Delete the Firebase Auth account itself — LAST: every earlier

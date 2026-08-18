@@ -9,7 +9,7 @@ struct WatchHeartMarkerView: View {
     @State private var progress: CGFloat = 1.0
 
     private var heartSize: CGFloat { isOwnHeart ? 16 : 12 }
-    private var color: Color { Color(hex: participant.color) }
+    private var color: Color { WatchHeartPalette.color(slot: participant.colorSlot) }
 
     init(participant: WatchParticipant, targetPosition: CGPoint, isOwnHeart: Bool) {
         self.participant = participant

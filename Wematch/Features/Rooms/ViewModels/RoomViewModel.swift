@@ -24,8 +24,12 @@ final class RoomViewModel {
     private let roomRepository: any RoomRepository
     private let tempRoomRepository: any TemporaryRoomRepository
     private let healthKitService: any HealthKitServiceProtocol
-    private let watchService: any WatchConnectivityServiceProtocol
+    let watchService: any WatchConnectivityServiceProtocol
     private let authManager: AuthenticationManager
+    /// Internal, not private: the dashboard recording lives in
+    /// `RoomViewModel+DashboardRecording.swift` and an extension in another file cannot
+    /// see private members.
+    let dashboardStore: any DashboardRecordStoring
 
     // MARK: - Simulated Participants (plot testing)
 
@@ -54,9 +58,21 @@ final class RoomViewModel {
     /// Timer task for star drift updates.
     private var starTimerTask: Task<Void, Never>?
 
+    // MARK: - Dashboard Recording
+
+    /// Accumulates this session's records; flushed to the store on the way out.
+    /// Internal for the same reason as `dashboardStore`.
+    var recorder: SyncSessionRecorder?
+
+    /// Set while heart-rate writes are failing, cleared on the first one that lands.
+    ///
+    /// Separate from `error` on purpose: `error` presents a modal alert, which is the wrong
+    /// shape for a failure that repeats every second and needs no decision from the user.
+    private(set) var sharingWarning: String?
+
     // MARK: - Participant Color
 
-    private var assignedColor: String = "FF6B9D"
+    private var assignedSlot = HeartPaletteSlot(index: 0)
 
     // MARK: - Init
 
@@ -66,12 +82,14 @@ final class RoomViewModel {
          tempRoomRepository: (any TemporaryRoomRepository)? = nil,
          healthKitService: (any HealthKitServiceProtocol)? = nil,
          watchService: (any WatchConnectivityServiceProtocol)? = nil,
+         dashboardStore: (any DashboardRecordStoring)? = nil,
          authManager: AuthenticationManager) {
         self.roomID = roomID
         self.roomName = roomName
         self.roomRepository = roomRepository ?? FirebaseRoomRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
         self.watchService = watchService ?? PhoneSessionManager.shared
+        self.dashboardStore = dashboardStore ?? DashboardRecordStore()
         self.authManager = authManager
 
         #if targetEnvironment(simulator)
@@ -80,10 +98,12 @@ final class RoomViewModel {
         self.healthKitService = healthKitService ?? HealthKitHeartRateService()
         #endif
 
-        // Assign a color from the palette based on userID hash
+        // Claim a palette slot from the user ID. Stable across launches and devices,
+        // unlike the previous hashValue-based pick. Derived from the firebaseSafe form
+        // because that is the ID that travels: a decoder falling back to a local
+        // derivation then lands on this same slot rather than a neighbouring hue.
         if let userID = authManager.currentUserID {
-            let index = abs(userID.hashValue) % WematchTheme.heartColors.count
-            self.assignedColor = WematchTheme.heartColorHexes[index]
+            self.assignedSlot = HeartPaletteSlot(userID: userID.firebaseSafe())
         }
     }
 
@@ -112,7 +132,7 @@ final class RoomViewModel {
                     username: currentUsername,
                     currentHR: ownHeartRate,
                     previousHR: previousHeartRate,
-                    color: assignedColor
+                    slot: assignedSlot
                 ))
             }
         }
@@ -155,12 +175,14 @@ final class RoomViewModel {
         let participant = RoomParticipant(
             id: userID,
             username: currentUsername,
-            color: assignedColor
+            slot: assignedSlot
         )
 
         do {
             try await roomRepository.joinRoom(roomID: roomID, participant: participant)
             isInRoom = true
+
+            startDashboardRecording(userID: userID)
         } catch {
             self.error = error
             Log.rooms.error("Failed to join room: \(error.localizedDescription)")
@@ -190,6 +212,9 @@ final class RoomViewModel {
 
         // 7. Start star drift timer
         startStarTimer()
+
+        // 8. Give the Watch something to show if the user swipes to the dashboard.
+        Task { await pushDashboardSnapshotToWatch() }
 
         Log.rooms.info("Entered room \(self.roomID)")
     }
@@ -252,7 +277,10 @@ final class RoomViewModel {
             Log.rooms.warning("Exited room with no session — Firebase cleanup skipped, onDisconnect will reap")
         }
 
-        // 5. Clear state
+        // 5. Close out the dashboard recording for this session.
+        await flushDashboardRecords()
+
+        // 6. Clear state
         isInRoom = false
         participants = []
         ownHeartRate = 0
@@ -271,6 +299,8 @@ final class RoomViewModel {
         let newFormations = currentPairs.subtracting(previousSyncedPairs)
 
         let hasNewFormations = !newFormations.isEmpty && !previousSyncedPairs.isEmpty
+
+        let starsBeforeSpawn = activeStars.count
 
         if hasNewFormations {
             // Spawn one star per new sync pair, hard-capped: each star is a
@@ -298,6 +328,8 @@ final class RoomViewModel {
         }
 
         previousSyncedPairs = currentPairs
+
+        recordDashboardState(starsSpawned: activeStars.count - starsBeforeSpawn)
 
         // Send room state to Watch
         sendRoomUpdateToWatch(newSyncFormations: hasNewFormations)
@@ -353,7 +385,7 @@ final class RoomViewModel {
                 "id": p.id,
                 "currentHR": p.currentHR,
                 "previousHR": p.previousHR,
-                "color": p.color
+                "colorSlot": p.slot.index
             ]
         }
 
@@ -421,10 +453,16 @@ final class RoomViewModel {
                         userID: userID,
                         data: data,
                         username: currentUsername,
-                        color: assignedColor
+                        slot: assignedSlot
                     )
+                    // A single success means the room is seeing us again.
+                    sharingWarning = nil
                 } catch {
+                    // Surfaced, not just logged (audit D). Deliberately not thrown into
+                    // `error`: that drives a modal alert, and this fires once a second
+                    // while the network is down. One quiet banner, cleared on recovery.
                     Log.rooms.error("Failed to update HR: \(error.localizedDescription)")
+                    sharingWarning = "Your heart isn't reaching the room."
                 }
             }
         }

@@ -14,11 +14,11 @@
         "users": {
           "$uid": {
             ".write": "auth != null && auth.uid == $uid",
-            ".validate": "newData.hasChildren(['username', 'currentHR', 'previousHR', 'color', 'timestamp']) || newData.val() == null",
+            ".validate": "newData.hasChildren(['username', 'currentHR', 'previousHR', 'colorSlot', 'timestamp']) || newData.val() == null",
             "currentHR": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 250" },
             "previousHR": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 250" },
             "username": { ".validate": "newData.isString() && newData.val().length <= 64" },
-            "color": { ".validate": "newData.isString() && newData.val().length <= 8" },
+            "colorSlot": { ".validate": "newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 0 && newData.val() <= 19" },
             "timestamp": { ".validate": "newData.isNumber()" },
             "$other": { ".validate": false }
           }

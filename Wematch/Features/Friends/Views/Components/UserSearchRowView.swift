@@ -27,13 +27,13 @@ struct UserSearchRowView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color(hex: "C084FC"))
+                        .background(WematchTheme.actionGradient)
                         .clipShape(Capsule())
                 }
             case .pending:
                 StatusBadge(text: "Pending", style: .pending)
             case .alreadyFriends:
-                StatusBadge(text: "Friends", style: .friends)
+                StatusBadge(text: "Friends", style: .info)
             }
         }
         .padding(.vertical, 4)

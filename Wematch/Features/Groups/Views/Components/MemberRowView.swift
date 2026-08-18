@@ -27,7 +27,7 @@ struct MemberRowView: View {
             Spacer()
 
             if isGroupAdmin {
-                StatusBadge(text: "Admin", style: .admin)
+                StatusBadge(text: "Admin", style: .accent)
             }
 
             if canRemove {

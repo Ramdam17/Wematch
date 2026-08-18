@@ -64,8 +64,10 @@ struct CreateGroupSheet: View {
                     .autocorrectionDisabled()
 
                 if viewModel.isLoading {
+                    // Stays a plain spinner: it sits where the submit button was, and a
+                    // pulsing heart at that size would shove the layout around.
                     ProgressView()
-                        .tint(Color(hex: "C084FC"))
+                        .tint(WematchTheme.brandHeart)
                 } else {
                     GradientButton("Create") {
                         Task {

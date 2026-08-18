@@ -18,8 +18,7 @@ struct BrowseGroupsView: View {
             if searchText.isEmpty {
                 promptView
             } else if isSearching {
-                ProgressView()
-                    .tint(Color(hex: "C084FC"))
+                LoadingState(message: "Searching groups…")
             } else if searchResults.isEmpty {
                 noResultsView
             } else {

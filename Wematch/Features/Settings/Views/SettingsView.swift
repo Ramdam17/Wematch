@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AuthenticationManager.self) private var authManager
+    @Environment(ThemeController.self) private var themeController
     @State private var viewModel: SettingsViewModel?
     @ScaledMetric(relativeTo: .largeTitle) private var profileIconSize = 56
     @ScaledMetric(relativeTo: .title) private var dashboardIconSize = 24
@@ -14,6 +15,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: WematchTheme.paddingMedium) {
                         profileSection(viewModel)
+                        themeSection(viewModel)
                         dashboardSection()
                         accountSection(viewModel)
                     }
@@ -24,7 +26,10 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .task {
             if viewModel == nil {
-                viewModel = SettingsViewModel(authManager: authManager)
+                viewModel = SettingsViewModel(
+                    authManager: authManager,
+                    themeController: themeController
+                )
             }
         }
         .alert("Error", isPresented: .init(
@@ -51,14 +56,8 @@ struct SettingsView: View {
                 ZStack {
                     Color.black.opacity(0.4).ignoresSafeArea()
                     GlassCard {
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                            Text("Deleting account...")
-                                .font(WematchTypography.headline)
-                                .foregroundStyle(WematchTheme.textPrimary)
-                        }
-                        .padding()
+                        LoadingState(message: "Deleting your account…")
+                            .padding()
                     }
                     .frame(width: 200)
                 }
@@ -90,21 +89,36 @@ struct SettingsView: View {
         }
     }
 
+    private func themeSection(_ viewModel: SettingsViewModel) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Theme")
+                    .font(WematchTypography.body)
+                    .foregroundStyle(WematchTheme.textPrimary)
+
+                ThemePicker(selection: viewModel.themePreference) { theme in
+                    viewModel.selectTheme(theme)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private func dashboardSection() -> some View {
         NavigationLink {
-            DashboardPlaceholderView()
+            DashboardView()
         } label: {
             GlassCard {
                 HStack {
                     Image(systemName: "chart.xyaxis.line")
                         .font(.system(size: dashboardIconSize))
-                        .foregroundStyle(Color(hex: "F472B6").gradient)
+                        .foregroundStyle(WematchTheme.brandHeart.gradient)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Dashboard")
                             .font(WematchTypography.headline)
                             .foregroundStyle(WematchTheme.textPrimary)
-                        Text("Coming Soon")
+                        Text("Your sync history")
                             .font(WematchTypography.caption)
                             .foregroundStyle(WematchTheme.textSecondary)
                     }

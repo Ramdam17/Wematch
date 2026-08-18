@@ -11,10 +11,16 @@ final class SettingsViewModel {
     var error: Error?
 
     private let authManager: AuthenticationManager
+    private let themeController: ThemeController
     private let deletionService: AccountDeletionService
 
-    init(authManager: AuthenticationManager, deletionService: AccountDeletionService? = nil) {
+    init(
+        authManager: AuthenticationManager,
+        themeController: ThemeController,
+        deletionService: AccountDeletionService? = nil
+    ) {
         self.authManager = authManager
+        self.themeController = themeController
         self.deletionService = deletionService ?? AccountDeletionService()
     }
 
@@ -26,6 +32,21 @@ final class SettingsViewModel {
         guard let date = authManager.userProfile?.createdAt else { return "" }
         return date.formatted(.dateTime.month(.wide).year())
     }
+
+    // MARK: - Theme
+
+    var themePreference: ThemePreference {
+        themeController.preference
+    }
+
+    /// The choice goes through here rather than straight from the view to the controller,
+    /// so the Settings screen has exactly one object to talk to and the persistence stays
+    /// behind a boundary the tests can reach.
+    func selectTheme(_ preference: ThemePreference) {
+        themeController.select(preference)
+    }
+
+    // MARK: - Account
 
     func signOut() async {
         isSigningOut = true

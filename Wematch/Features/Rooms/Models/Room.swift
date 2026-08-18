@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct Room: Identifiable, Sendable {
     let id: String
@@ -17,7 +18,8 @@ struct RoomParticipant: Identifiable, Sendable {
     let username: String
     var currentHR: Double
     var previousHR: Double
-    let color: String
+    /// Palette slot, not a resolved colour: every client renders it for its own mode.
+    let slot: HeartPaletteSlot
     let timestamp: Date
 
     // MARK: - Firebase Serialization
@@ -27,18 +29,18 @@ struct RoomParticipant: Identifiable, Sendable {
             "username": username,
             "currentHR": currentHR,
             "previousHR": previousHR,
-            "color": color,
+            "colorSlot": slot.index,
             "timestamp": timestamp.timeIntervalSince1970
         ]
     }
 
     init(id: String, username: String, currentHR: Double = 0,
-         previousHR: Double = 0, color: String, timestamp: Date = Date()) {
+         previousHR: Double = 0, slot: HeartPaletteSlot, timestamp: Date = Date()) {
         self.id = id
         self.username = username
         self.currentHR = currentHR
         self.previousHR = previousHR
-        self.color = color
+        self.slot = slot
         self.timestamp = timestamp
     }
 
@@ -48,8 +50,17 @@ struct RoomParticipant: Identifiable, Sendable {
         self.username = username
         self.currentHR = dictionary["currentHR"] as? Double ?? 0
         self.previousHR = dictionary["previousHR"] as? Double ?? 0
-        self.color = dictionary["color"] as? String ?? "FF6B9D"
         self.timestamp = (dictionary["timestamp"] as? TimeInterval)
             .map { Date(timeIntervalSince1970: $0) } ?? Date()
+
+        // Absent only in data written before the slot replaced the hex. Deriving the
+        // slot from the ID lands on the same hue every client would have chosen, so a
+        // stale record degrades to the right colour rather than a placeholder pink.
+        if let slotValue = dictionary["colorSlot"] as? Int {
+            self.slot = HeartPaletteSlot(index: slotValue)
+        } else {
+            self.slot = HeartPaletteSlot(userID: id)
+            Log.rooms.debug("Participant \(id, privacy: .private) carries no colorSlot; derived locally")
+        }
     }
 }

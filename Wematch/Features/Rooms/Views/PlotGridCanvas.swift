@@ -2,7 +2,6 @@ import SwiftUI
 
 struct PlotGridCanvas: View {
     let insets: EdgeInsets
-    @Environment(\.colorScheme) private var colorScheme
 
     private let bpmSteps: [Int] = stride(from: 40, through: 200, by: 20).map { $0 }
 
@@ -24,9 +23,7 @@ struct PlotGridCanvas: View {
     // MARK: - Grid Lines
 
     private func drawGridLines(context: GraphicsContext, plotRect: CGRect) {
-        let lineColor = colorScheme == .dark
-            ? Color.white.opacity(0.08)
-            : Color.black.opacity(0.08)
+        let lineColor = WematchTheme.plotGridline
 
         for bpm in bpmSteps {
             let norm = PlotCoordinates.normalize(Double(bpm))
@@ -50,9 +47,7 @@ struct PlotGridCanvas: View {
     // MARK: - Diagonal X = Y
 
     private func drawDiagonal(context: GraphicsContext, plotRect: CGRect) {
-        let diagColor = colorScheme == .dark
-            ? Color.white.opacity(0.15)
-            : Color.black.opacity(0.12)
+        let diagColor = WematchTheme.plotDiagonal
 
         var diagPath = Path()
         diagPath.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
@@ -68,9 +63,7 @@ struct PlotGridCanvas: View {
     // MARK: - Axis Labels
 
     private func drawAxisLabels(context: GraphicsContext, plotRect: CGRect, size: CGSize) {
-        let labelColor = colorScheme == .dark
-            ? Color.white.opacity(0.35)
-            : Color.black.opacity(0.35)
+        let labelColor = WematchTheme.plotLabel
 
         let font = Font.system(size: 9, weight: .medium, design: .rounded)
 
@@ -97,5 +90,25 @@ struct PlotGridCanvas: View {
                 anchor: .trailing
             )
         }
+    }
+}
+
+// The grid, diagonal and labels are drawn inside a Canvas, which resolves colours
+// itself — this preview exists to confirm the plot tokens still flip with the mode.
+#Preview("Plot chrome — both modes") {
+    let insets = EdgeInsets(top: 20, leading: 32, bottom: 28, trailing: 20)
+
+    VStack(spacing: 0) {
+        ZStack {
+            WematchTheme.backgroundGradient
+            PlotGridCanvas(insets: insets)
+        }
+        .environment(\.colorScheme, .light)
+
+        ZStack {
+            WematchTheme.backgroundGradient
+            PlotGridCanvas(insets: insets)
+        }
+        .environment(\.colorScheme, .dark)
     }
 }

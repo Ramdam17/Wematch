@@ -53,9 +53,7 @@ struct UsernamePickerView: View {
             if authManager.isLoading {
                 Color.black.opacity(0.2)
                     .ignoresSafeArea()
-                ProgressView()
-                    .tint(WematchTheme.textPrimary)
-                    .scaleEffect(1.5)
+                LoadingState(message: "Saving your name…")
             }
         }
         .alert("Error", isPresented: .init(

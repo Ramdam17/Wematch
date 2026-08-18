@@ -26,7 +26,7 @@ const VALID_HR = {
   username: "cosmic_panda0042",
   currentHR: 72,
   previousHR: 70,
-  color: "FF6B9D",
+  colorSlot: 6,
   timestamp: 1721000000,
 };
 
@@ -54,6 +54,26 @@ test("HR outside 0-250 is rejected", async () => {
   const db = env.authenticatedContext("uidA").database();
   await assertFails(
     db.ref("rooms/room1/users/uidA").set({ ...VALID_HR, currentHR: 300 })
+  );
+});
+
+test("a colorSlot outside the palette range is rejected", async () => {
+  const db = env.authenticatedContext("uidA").database();
+  await assertFails(
+    db.ref("rooms/room1/users/uidA").set({ ...VALID_HR, colorSlot: 20 })
+  );
+  await assertFails(
+    db.ref("rooms/room1/users/uidA").set({ ...VALID_HR, colorSlot: -1 })
+  );
+});
+
+test("a non-integer or non-numeric colorSlot is rejected", async () => {
+  const db = env.authenticatedContext("uidA").database();
+  await assertFails(
+    db.ref("rooms/room1/users/uidA").set({ ...VALID_HR, colorSlot: 6.5 })
+  );
+  await assertFails(
+    db.ref("rooms/room1/users/uidA").set({ ...VALID_HR, colorSlot: "FF6B9D" })
   );
 });
 
