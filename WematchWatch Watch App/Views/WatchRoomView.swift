@@ -14,7 +14,7 @@ struct WatchRoomView: View {
 
             // Says out loud when no heart rate is arriving. Without it the plot is
             // simply empty, which looks identical to a room nobody has joined yet.
-            if let explanation = viewModel.heartRateStatus.explanation {
+            if let explanation = viewModel.heartRateStatus.watchExplanation {
                 VStack {
                     Text(explanation)
                         .font(.caption2)

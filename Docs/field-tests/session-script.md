@@ -78,7 +78,11 @@ the Watch app, not just a setting.
 2. B enters the room.
 
 **Expect** — B's Watch shows "No heart rate yet. Check Wematch has heart-rate access in
-the Watch Settings app." rather than an empty plot. A's phone logs the same status.
+the Watch Settings app." rather than an empty plot.
+**Expect** — B's *phone* shows the shorter banner **"No heart rate from your Watch."** The
+two wordings differ on purpose (plan 1.7): the instruction belongs on the device that can
+act on it, and the phone's banner sits on top of the plot. If the phone shows the Watch's
+long sentence, the per-device split has regressed.
 **Expect** — A's own heart still plots normally; one denied Watch does not break the room.
 **Measure** — with permission *granted*, seconds from entering the room to the first heart
 rate on the Watch. `WatchHeartRateStatus.firstSampleTimeout` is currently **20 s and is a
@@ -171,9 +175,16 @@ Then: press **Stop** on A's Watch and confirm the workout ends.
 
 1. Both re-join. A enables airplane mode and waits 90 seconds, then disables it.
 
-**Expect** — no connection banner or offline state appears. There is no connection-state
-indicator yet (plan 1.7, finding D3); the plot simply keeps showing the last values it had.
-Do not file this — record how misleading it is, which is the argument for 1.7's priority.
+**Expect** — A's room shows the red banner **"You're offline. The hearts here have stopped
+updating."** within seconds, and it clears on its own when airplane mode goes off. This is
+the case plan 1.7 was written for, and the one that decides whether it works: losing the
+network does not cancel a Realtime Database listener, it starves it, so this banner comes
+from `.info/connected` and nothing else. **A banner that never appears, or one that stays up
+after the network returns, is a finding — file it.**
+**Expect** — B sees no banner. B's own links are all fine; A simply stops updating on B's
+plot. Nothing yet tells B that A's heart is stale (that is S9's subject, still open).
+**Measure** — seconds from airplane mode on to the banner appearing, and from off to it
+clearing. Both are unmeasured; `.info/connected` timing is the SDK's, not ours.
 **Measure** — seconds until A's heart is reaped from B's plot.
 **Measure** — on airplane mode off: does A rejoin on their own? Does A's heart return to B's
 plot without A doing anything? The code does not re-join; whether the RTDB SDK's queued
@@ -188,9 +199,13 @@ writes restore presence is an open question, and this is the case that answers i
    are out of Bluetooth range (or force-quits the Watch app — same effect from the phone's
    side).
 
-**Expect** — B's heart freezes on the plot at its last value and stays there. There is no
-staleness detection: on a real device the phone's HR *comes from* the Watch, so losing the
-Watch stops the updates without removing the participant.
+**Expect** — B's heart freezes on the plot at its last value and stays there, on **both**
+phones. There is still no staleness detection: on a real device the phone's HR *comes from*
+the Watch, so losing the Watch stops the updates without removing the participant. Do not
+file this — it is the gap plan 1.7 did **not** close, recorded here on purpose.
+**Expect** — no `Can't reach your Watch` banner on B's phone either, unless B leaves the
+room while out of range. That banner is raised by a *failed outgoing command*, and the phone
+sends none while sitting in a room. If it does appear, note what B did just before.
 **Measure** — how long a stale heart stays on the plot before anything changes.
 **Measure** — on B's return: does streaming resume by itself?
 

@@ -43,6 +43,7 @@ final class RoomViewModel {
     // MARK: - Tasks
 
     private var observeTask: Task<Void, Never>?
+    private var connectionTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
     private var simulationTask: Task<Void, Never>?
     /// Internal for the same reason as `watchHeartRateStatus`.
@@ -71,15 +72,42 @@ final class RoomViewModel {
     /// Internal for the same reason as `dashboardStore`.
     var recorder: SyncSessionRecorder?
 
-    /// Set while heart-rate writes are failing, cleared on the first one that lands.
-    ///
-    /// Separate from `error` on purpose: `error` presents a modal alert, which is the wrong
-    /// shape for a failure that repeats every second and needs no decision from the user.
-    private(set) var sharingWarning: String?
+    // MARK: - Connection Health
+    //
+    // Three links can break independently; they are folded into one `connectionState`
+    // (plan 1.7). Kept separate here because they are *set* in three unrelated places,
+    // and merged at the point of reading so precedence lives in one testable function.
+
+    /// The device is not reaching the database at all (`.info/connected`).
+    private(set) var isOffline = false
+
+    /// The participants stream threw — permission denied, or a listener the server
+    /// refused. Not the same event as `isOffline`, and neither implies the other.
+    private(set) var isRoomUnreachable = false
+
+    /// A Watch command could not be delivered at all. Internal rather than
+    /// `private(set)` for the same reason as `watchHeartRateStatus`: it is written by
+    /// the Watch extension in another file.
+    var isWatchUnreachable = false
+
+    /// False while heart-rate writes are failing, true again on the first one that lands.
+    private(set) var isSharingHeartRate = true
+
+    /// What the room says about itself. Deliberately not an `error`: `error` presents a
+    /// modal alert, which is the wrong shape for a failure that repeats every second and
+    /// needs no decision from the user.
+    var connectionState: RoomConnectionState {
+        RoomConnectionState.resolve(isOffline: isOffline,
+                                    roomUnreachable: isRoomUnreachable,
+                                    watchUnreachable: isWatchUnreachable,
+                                    watchHeartRate: watchHeartRateStatus,
+                                    isSharingHeartRate: isSharingHeartRate)
+    }
 
     // MARK: - Participant Color
 
-    private var assignedSlot = HeartPaletteSlot(index: 0)
+    /// Internal, not private: read by the plot extension in another file.
+    var assignedSlot = HeartPaletteSlot(index: 0)
 
     // MARK: - Init
 
@@ -118,43 +146,6 @@ final class RoomViewModel {
 
     var currentUserID: String? { authManager.currentUserID }
     var currentUsername: String { authManager.userProfile?.username ?? "unknown" }
-
-    var otherParticipants: [RoomParticipant] {
-        participants.filter { $0.id != currentUserID }
-    }
-
-    var participantCount: Int { participants.count }
-
-    /// All participants for the 2D plot, including self and simulated users.
-    var allParticipantsForPlot: [RoomParticipant] {
-        var result = participants
-
-        // Add self if not already in Firebase participants (edge case during join)
-        // Note: Firebase stores IDs as firebaseSafe() (dots → underscores), so we must compare using the safe version
-        if let userID = currentUserID {
-            let safeUserID = userID.firebaseSafe()
-            if !result.contains(where: { $0.id == safeUserID }), ownHeartRate > 0 {
-                result.append(RoomParticipant(
-                    id: safeUserID,
-                    username: currentUsername,
-                    currentHR: ownHeartRate,
-                    previousHR: previousHeartRate,
-                    slot: assignedSlot
-                ))
-            }
-        }
-
-        #if targetEnvironment(simulator)
-        result.append(contentsOf: simulatedParticipants)
-        #endif
-
-        return result
-    }
-
-    /// Sync graph computed from current participants.
-    var syncGraph: SyncGraph {
-        SyncGraph(participants: allParticipantsForPlot)
-    }
 
     // MARK: - Room Lifecycle
 
@@ -196,8 +187,9 @@ final class RoomViewModel {
             return
         }
 
-        // 3. Start observing other participants
+        // 3. Start observing other participants, and the link they arrive over
         startObservingParticipants()
+        startObservingConnection()
 
         startObservingWatchMessages()
 
@@ -236,16 +228,23 @@ final class RoomViewModel {
 
         // 1. Cancel all background tasks
         observeTask?.cancel()
+        connectionTask?.cancel()
         heartRateTask?.cancel()
         simulationTask?.cancel()
         starTimerTask?.cancel()
         watchMessageTask?.cancel()
         observeTask = nil
+        connectionTask = nil
         heartRateTask = nil
         simulationTask = nil
         starTimerTask = nil
         watchMessageTask = nil
         watchHeartRateStatus = .idle
+        // A room we are no longer in has no connection to complain about.
+        isOffline = false
+        isRoomUnreachable = false
+        isWatchUnreachable = false
+        isSharingHeartRate = true
 
         #if targetEnvironment(simulator)
         simulatedRoomService.stopSimulation()
@@ -384,57 +383,32 @@ final class RoomViewModel {
         }
     }
 
-    // MARK: - Private: Watch Room Updates
+    // MARK: - Private: Observation
 
-    private func sendRoomUpdateToWatch(newSyncFormations: Bool) {
-        #if !targetEnvironment(simulator)
-        let graph = syncGraph
-        let maxChain = graph.softClusters.map(\.chainLength).max() ?? 0
-        let syncedIDs = Set(graph.softClusters.flatMap(\.memberIDs))
-
-        let participantDicts: [[String: Any]] = allParticipantsForPlot.map { p in
-            [
-                "id": p.id,
-                "currentHR": p.currentHR,
-                "previousHR": p.previousHR,
-                "colorSlot": p.slot.index
-            ]
-        }
-
-        PhoneSessionManager.shared.sendRoomUpdate(
-            participants: participantDicts,
-            currentUserID: currentUserID ?? "",
-            maxChain: maxChain,
-            syncedCount: syncedIDs.count,
-            newSyncFormations: newSyncFormations
-        )
-        #endif
-    }
-
-    // MARK: - Private: Watch Commands
-
-    private func sendWatchCommand(_ type: String, roomID: String? = nil) {
-        var message: [String: Any] = ["type": type]
-        if let roomID { message["roomID"] = roomID }
-
-        Task {
-            do {
-                try await watchService.send(message: message)
-                Log.rooms.debug("Sent \(type) command to Watch")
-            } catch {
-                Log.rooms.warning("Failed to send \(type) to Watch: \(error.localizedDescription)")
+    private func startObservingConnection() {
+        connectionTask = Task {
+            for await isConnected in roomRepository.observeConnection() {
+                guard !Task.isCancelled else { break }
+                self.isOffline = !isConnected
             }
         }
     }
 
-    // MARK: - Private: Observation
-
     private func startObservingParticipants() {
         observeTask = Task {
-            for await updatedParticipants in roomRepository.observeParticipants(roomID: roomID) {
-                guard !Task.isCancelled else { break }
-                self.participants = updatedParticipants
-                processSyncChanges()
+            do {
+                for try await updatedParticipants in roomRepository.observeParticipants(roomID: roomID) {
+                    guard !Task.isCancelled else { break }
+                    self.isRoomUnreachable = false
+                    self.participants = updatedParticipants
+                    processSyncChanges()
+                }
+            } catch is CancellationError {
+                // Leaving the room, not a fault.
+            } catch {
+                // The plot is now a photograph of the past, and says so (plan 1.7, D2).
+                Log.rooms.error("Room stream lost: \(error.localizedDescription)")
+                self.isRoomUnreachable = true
             }
         }
     }
@@ -468,13 +442,13 @@ final class RoomViewModel {
                         slot: assignedSlot
                     )
                     // A single success means the room is seeing us again.
-                    sharingWarning = nil
+                    isSharingHeartRate = true
                 } catch {
                     // Surfaced, not just logged (audit D). Deliberately not thrown into
                     // `error`: that drives a modal alert, and this fires once a second
                     // while the network is down. One quiet banner, cleared on recovery.
                     Log.rooms.error("Failed to update HR: \(error.localizedDescription)")
-                    sharingWarning = "Your heart isn't reaching the room."
+                    isSharingHeartRate = false
                 }
             }
         }

@@ -78,23 +78,24 @@ struct FirestoreInboxRepository: InboxRepository {
         return FirebaseAuthService().currentUID
     }
 
+    /// Firestore-facing shell: pulls the document apart, converts the one Firestore
+    /// type involved (`Timestamp`), and hands the rest to the pure decoder.
+    ///
+    /// A message whose `type` this build does not know is no longer dropped here — it
+    /// decodes to `.unknown` and reaches the list (plan 1.7, audit D3). Only a
+    /// document with no `type` field at all is refused, and it says so out loud.
     private static func message(from doc: DocumentSnapshot, recipientID: String) -> InboxMessage? {
-        guard doc.exists, let data = doc.data(),
-              let typeRaw = data["type"] as? String else { return nil }
-        guard let type = InboxMessageType(rawValue: typeRaw) else {
-            // Unknown type (newer app version?) — logged, not silently vanished
-            // into thin air. A proper `.unknown` case is plan step 1.7 (D3).
-            Log.inbox.warning("Unknown inbox message type '\(typeRaw)' in \(doc.documentID) — skipped")
+        guard doc.exists, let data = doc.data() else { return nil }
+        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+        guard let message = InboxMessage(id: doc.documentID, recipientID: recipientID,
+                                         data: data, createdAt: createdAt) else {
+            Log.inbox.error("Inbox document \(doc.documentID) has no type field — skipped")
             return nil
         }
-        return InboxMessage(
-            id: doc.documentID,
-            recipientID: recipientID,
-            type: type,
-            payload: data["payload"] as? [String: String] ?? [:],
-            isRead: data["isRead"] as? Bool ?? false,
-            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
-        )
+        if message.type.isUnknown {
+            Log.inbox.warning("Inbox message \(doc.documentID) has unknown type '\(message.type.rawValue)' — shown as unsupported")
+        }
+        return message
     }
 }
 

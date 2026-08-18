@@ -11,8 +11,16 @@ final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
         } else if FirebaseManager.shared.database != nil {
             self.firebaseService = FirebaseRealtimeService()
         } else {
-            Log.rooms.info("Firebase unavailable — using mock service")
+            #if DEBUG
+            // Development convenience only. In release this branch would hand the user
+            // a room built entirely out of local state — a plot that looks alive and
+            // shows nobody who exists (plan 1.7).
+            Log.rooms.warning("Firebase unavailable — using in-memory mock (DEBUG builds only)")
             self.firebaseService = MockFirebaseService()
+            #else
+            Log.rooms.error("Firebase unavailable — every room operation will fail loudly")
+            self.firebaseService = FirebaseRealtimeService(database: nil)
+            #endif
         }
     }
 
@@ -66,16 +74,26 @@ final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
         try await firebaseService.write(path: path, value: value)
     }
 
-    func observeParticipants(roomID: String) -> AsyncStream<[RoomParticipant]> {
+    func observeConnection() -> AsyncStream<Bool> {
+        firebaseService.observeConnection()
+    }
+
+    func observeParticipants(roomID: String) -> AsyncThrowingStream<[RoomParticipant], Error> {
         let path = usersPath(roomID)
 
-        return AsyncStream { continuation in
+        return AsyncThrowingStream { continuation in
             let task = Task {
-                for await snapshot in firebaseService.observe(path: path) {
-                    let participants = Self.parseParticipants(from: snapshot)
-                    continuation.yield(participants)
+                do {
+                    for try await snapshot in firebaseService.observe(path: path) {
+                        continuation.yield(Self.parseParticipants(from: snapshot))
+                    }
+                    continuation.finish()
+                } catch {
+                    // The room is gone as far as this device is concerned. Passed up
+                    // rather than absorbed (plan 1.7, D2) — the caller shows it.
+                    Log.rooms.error("Participant stream failed: \(error.localizedDescription)")
+                    continuation.finish(throwing: error)
                 }
-                continuation.finish()
             }
 
             continuation.onTermination = { @Sendable _ in

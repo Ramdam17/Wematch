@@ -83,14 +83,8 @@ struct InboxMessageRowView: View {
 
     // MARK: - Display Properties
 
-    private var hasActions: Bool {
-        switch message.type {
-        case .groupJoinRequest, .friendRequest, .temporaryRoomInvitation:
-            true
-        default:
-            false
-        }
-    }
+    /// Answered by the model so `.unknown` gets exactly one ruling (plan 1.7, D3).
+    private var hasActions: Bool { message.type.hasActions }
 
     private var iconName: String {
         switch message.type {
@@ -102,6 +96,7 @@ struct InboxMessageRowView: View {
         case .friendRequestAccepted: "person.2.fill"
         case .friendRequestDeclined: "person.slash"
         case .temporaryRoomInvitation: "heart.circle"
+        case .unknown: "questionmark.circle"
         }
     }
 
@@ -115,6 +110,7 @@ struct InboxMessageRowView: View {
         case .friendRequestAccepted: .green
         case .friendRequestDeclined: .red
         case .temporaryRoomInvitation: Color(hex: "EC4899")
+        case .unknown: .secondary
         }
     }
 
@@ -139,6 +135,9 @@ struct InboxMessageRowView: View {
             return "\(username) declined your friend request"
         case .temporaryRoomInvitation:
             return "\(username) invited you to a room"
+        case .unknown:
+            // Named, not hidden: something arrived, and this build cannot read it.
+            return "A message this version can't open"
         }
     }
 
@@ -160,6 +159,8 @@ struct InboxMessageRowView: View {
             "Better luck next time"
         case .temporaryRoomInvitation:
             "Join to share heart rates"
+        case .unknown:
+            "Update Wematch to see it"
         }
     }
 }

@@ -11,8 +11,16 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
         } else if FirebaseManager.shared.database != nil {
             self.firebaseService = FirebaseRealtimeService()
         } else {
-            Log.rooms.info("Firebase unavailable — using mock service for temp rooms")
+            #if DEBUG
+            // Development convenience only. In release this branch would hand the user
+            // a room built entirely out of local state — a plot that looks alive and
+            // shows nobody who exists (plan 1.7).
+            Log.rooms.warning("Firebase unavailable — using in-memory mock (DEBUG builds only)")
             self.firebaseService = MockFirebaseService()
+            #else
+            Log.rooms.error("Firebase unavailable — every room operation will fail loudly")
+            self.firebaseService = FirebaseRealtimeService(database: nil)
+            #endif
         }
     }
 
@@ -72,31 +80,13 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
     }
 
     func fetchActiveRooms(userID: String) async throws -> [TemporaryRoom] {
-        // Read the user's temp room index
-        // observe() returns an AsyncStream — we take the first snapshot
-        let path = userIndexPath(userID)
-
-        return await withCheckedContinuation { continuation in
-            let task = Task {
-                var result: [TemporaryRoom] = []
-                for await snapshot in firebaseService.observe(path: path) {
-                    result = Self.parseRooms(from: snapshot)
-                    break // Take only the first snapshot
-                }
-                continuation.resume(returning: result)
-            }
-
-            // Safety: cancel after 5 seconds if no response
-            Task {
-                try? await Task.sleep(for: .seconds(5))
-                task.cancel()
-            }
-        }
+        let snapshot = try await firebaseService.read(path: userIndexPath(userID))
+        return Self.parseRooms(from: snapshot)
     }
 
     func deleteRoom(roomID: String) async throws {
         // Resolve members from metadata — never from the roomID string (E1).
-        let metadata = await readOnce(path: "rooms/\(roomID.firebaseSafe())/metadata")
+        let metadata = try await firebaseService.read(path: "rooms/\(roomID.firebaseSafe())/metadata")
         if let memberIDs = metadata["memberIDs"] as? [String] {
             for memberID in memberIDs {
                 try await firebaseService.remove(path: indexPath(memberID, roomID))
@@ -113,43 +103,9 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
         Log.rooms.info("Destroyed temp room: \(roomID)")
     }
 
-    /// One-shot read built on the observe stream (first snapshot wins,
-    /// 5 s safety timeout). Single home for the pattern until a proper
-    /// `read(path:)` lands on FirebaseServiceProtocol (plan 1.7, C5).
-    private func readOnce(path: String) async -> [String: Any] {
-        await withCheckedContinuation { continuation in
-            let task = Task {
-                for await snapshot in firebaseService.observe(path: path) {
-                    continuation.resume(returning: snapshot)
-                    return
-                }
-                continuation.resume(returning: [:])
-            }
-
-            Task {
-                try? await Task.sleep(for: .seconds(5))
-                task.cancel()
-            }
-        }
-    }
-
     func hasParticipants(roomID: String) async throws -> Bool {
-        let path = roomUsersPath(roomID)
-
-        return await withCheckedContinuation { continuation in
-            let task = Task {
-                for await snapshot in firebaseService.observe(path: path) {
-                    continuation.resume(returning: !snapshot.isEmpty)
-                    return
-                }
-                continuation.resume(returning: false)
-            }
-
-            Task {
-                try? await Task.sleep(for: .seconds(5))
-                task.cancel()
-            }
-        }
+        let snapshot = try await firebaseService.read(path: roomUsersPath(roomID))
+        return !snapshot.isEmpty
     }
 
     // MARK: - Parsing

@@ -51,9 +51,10 @@ enum WatchHeartRateStatus: String, Equatable, Sendable, CaseIterable {
         self == .silent || self == .stopped
     }
 
-    /// Shown on the Watch and logged on the phone. Written to be actionable:
-    /// it names the most likely cause and where to fix it.
-    var explanation: String? {
+    /// Shown **on the Watch**, where the user can actually fix it: it names the most
+    /// likely cause and where to go. Long on purpose — the Watch screen has nothing
+    /// else on it at that moment.
+    var watchExplanation: String? {
         switch self {
         case .idle, .waitingForFirstSample, .streaming:
             nil
@@ -61,6 +62,20 @@ enum WatchHeartRateStatus: String, Equatable, Sendable, CaseIterable {
             "No heart rate yet. Check Wematch has heart-rate access in the Watch Settings app."
         case .stopped:
             "The workout stopped before any heart rate arrived."
+        }
+    }
+
+    /// Shown **on the phone**, in a pill sitting on top of the plot. Same fact, one
+    /// sentence: the phone cannot open the Watch's Settings app, so repeating the
+    /// instruction there costs three lines of the plot and buys nothing.
+    var phoneSummary: String? {
+        switch self {
+        case .idle, .waitingForFirstSample, .streaming:
+            nil
+        case .silent:
+            "No heart rate from your Watch."
+        case .stopped:
+            "Your Watch stopped sending heart rate."
         }
     }
 }

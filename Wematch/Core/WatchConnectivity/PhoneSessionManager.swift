@@ -43,9 +43,12 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate, WatchConnectivityS
     }
 
     func send(message: [String: Any]) async throws {
+        // Was: log and `return`, which reported success for a message that never left
+        // the phone (plan 1.7, D1). A throwing function that returns normally on
+        // failure is the silent failure the audit named.
         guard WCSession.default.isReachable else {
-            Log.watchConnectivity.warning("Watch not reachable — message not sent")
-            return
+            Log.watchConnectivity.error("Watch not reachable — message not sent")
+            throw WatchConnectivityError.watchUnreachable
         }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in

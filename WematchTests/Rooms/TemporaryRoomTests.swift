@@ -7,6 +7,12 @@ final class MockRoomRepository: RoomRepository, @unchecked Sendable {
     // Test-only mock: single-threaded XCTest access, no real concurrency.
     var joinedRoomIDs: [String] = []
     var leftRoomIDs: [String] = []
+    /// Thrown by the participants stream — a permission-denied listener, in practice.
+    var observeError: Error?
+    /// Thrown by every heart-rate write until cleared.
+    var heartRateWriteError: Error?
+    /// Connection values delivered in order; empty means "connected throughout".
+    var connectionUpdates: [Bool] = []
 
     func joinRoom(roomID: String, participant: RoomParticipant) async throws {
         joinedRoomIDs.append(roomID)
@@ -17,10 +23,27 @@ final class MockRoomRepository: RoomRepository, @unchecked Sendable {
     }
 
     func updateHeartRate(roomID: String, userID: String, data: HeartRateData,
-                         username: String, slot: HeartPaletteSlot) async throws {}
+                         username: String, slot: HeartPaletteSlot) async throws {
+        if let heartRateWriteError { throw heartRateWriteError }
+    }
 
-    func observeParticipants(roomID: String) -> AsyncStream<[RoomParticipant]> {
-        AsyncStream { $0.finish() }
+    func observeConnection() -> AsyncStream<Bool> {
+        let updates = connectionUpdates
+        return AsyncStream { continuation in
+            for value in updates { continuation.yield(value) }
+            continuation.finish()
+        }
+    }
+
+    func observeParticipants(roomID: String) -> AsyncThrowingStream<[RoomParticipant], Error> {
+        let error = observeError
+        return AsyncThrowingStream { continuation in
+            if let error {
+                continuation.finish(throwing: error)
+            } else {
+                continuation.finish()
+            }
+        }
     }
 }
 
@@ -48,19 +71,60 @@ final class SpyTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Send
 
 final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {
     var isAuthorized = true
+
+    /// Beats to deliver. The first is emitted as soon as the stream is consumed; the
+    /// rest wait for `emitNext()`, so a test can script "this write fails, the next
+    /// one lands". Empty (the default) keeps the historical behaviour: no heart at all.
+    var scriptedHeartRates: [Double] = []
+
+    private var continuation: AsyncStream<Double>.Continuation?
+    private var pending: [Double] = []
+
     func requestAuthorization() async throws {}
+
     func startHeartRateStreaming() -> AsyncStream<Double> {
-        AsyncStream { $0.finish() }
+        AsyncStream { continuation in
+            self.continuation = continuation
+            self.pending = self.scriptedHeartRates
+            if self.pending.isEmpty {
+                continuation.finish()
+            } else {
+                continuation.yield(self.pending.removeFirst())
+            }
+        }
     }
-    func stopHeartRateStreaming() {}
+
+    func emitNext() {
+        guard !pending.isEmpty else { return }
+        continuation?.yield(pending.removeFirst())
+    }
+
+    func stopHeartRateStreaming() {
+        continuation?.finish()
+    }
 }
 
 final class MockWatchService: WatchConnectivityServiceProtocol, @unchecked Sendable {
     var isReachable = false
+    /// Messages the Watch "sends" as soon as the phone starts listening.
+    var scriptedMessages: [[String: Any]] = []
+    /// Thrown by `send` — how an unreachable Watch behaves since plan 1.7 (D1).
+    var sendError: Error?
+    var sentMessages: [[String: Any]] = []
+
     func activate() {}
-    func send(message: [String: Any]) async throws {}
+
+    func send(message: [String: Any]) async throws {
+        sentMessages.append(message)
+        if let sendError { throw sendError }
+    }
+
     var receivedMessages: AsyncStream<[String: Any]> {
-        AsyncStream { $0.finish() }
+        let scripted = scriptedMessages
+        return AsyncStream { continuation in
+            for message in scripted { continuation.yield(message) }
+            continuation.finish()
+        }
     }
 }
 

@@ -31,16 +31,20 @@ struct RoomView: View {
             .padding(.horizontal, WematchTheme.paddingSmall)
             .padding(.bottom, WematchTheme.paddingSmall)
 
-            if let sharingWarning = viewModel.sharingWarning {
+            // One banner for every way the room can be lying to you (plan 1.7):
+            // dead participant stream, unreachable Watch, silent heart-rate feed,
+            // failing writes. The ViewModel folds them; the worst one speaks.
+            if let message = viewModel.connectionState.message {
                 VStack {
-                    ErrorToast(message: sharingWarning, severity: .warning)
+                    ErrorToast(message: message,
+                               severity: viewModel.connectionState.isCritical ? .error : .warning)
                         .padding(.top, WematchTheme.paddingSmall)
                     Spacer()
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.spring(duration: 0.3), value: viewModel.sharingWarning)
+        .animation(.spring(duration: 0.3), value: viewModel.connectionState)
         .navigationTitle(viewModel.roomName)
         .navigationBarBackButtonHidden(viewModel.isInRoom)
         .toolbar {
@@ -223,5 +227,25 @@ struct RoomView: View {
     private func leaveRoom() async {
         await viewModel.exitRoom()
         dismiss()
+    }
+}
+
+/// Every state the room banner can be in, in one place — the room itself needs a signed-in
+/// session and a broken link to show any of them, so this is the only way to look at them.
+#Preview("Connection banners") {
+    let states: [RoomConnectionState] = [
+        .offline, .roomUnreachable, .watchUnreachable,
+        .heartRateUnavailable(.silent), .heartRateUnavailable(.stopped), .notSharing
+    ]
+    return ZStack {
+        WematchTheme.backgroundGradient.ignoresSafeArea()
+        VStack(spacing: WematchTheme.paddingSmall) {
+            ForEach(states, id: \.self) { state in
+                if let message = state.message {
+                    ErrorToast(message: message, severity: state.isCritical ? .error : .warning)
+                }
+            }
+        }
+        .padding()
     }
 }

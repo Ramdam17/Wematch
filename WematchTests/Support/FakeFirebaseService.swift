@@ -20,10 +20,26 @@ final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
         storage[path] = value
     }
 
-    func observe(path: String) -> AsyncStream<[String: Any]> {
+    /// Thrown by the observe stream instead of yielding — the permission-denied case.
+    var observeError: Error?
+
+    func read(path: String) async throws -> [String: Any] {
+        if let readError { throw readError }
+        return storage[path] ?? [:]
+    }
+
+    /// Thrown by `read`.
+    var readError: Error?
+
+    func observe(path: String) -> AsyncThrowingStream<[String: Any], Error> {
         let snapshot = storage[path] ?? [:]
         let keepOpen = keepObserveOpen
-        return AsyncStream { continuation in
+        let error = observeError
+        return AsyncThrowingStream { continuation in
+            if let error {
+                continuation.finish(throwing: error)
+                return
+            }
             continuation.onTermination = { @Sendable [weak self] _ in
                 self?.observeTerminations.append(path)
             }
@@ -31,6 +47,17 @@ final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
             if !keepOpen {
                 continuation.finish()
             }
+        }
+    }
+
+    /// Connection values delivered in order; empty means "connected throughout".
+    var connectionUpdates: [Bool] = []
+
+    func observeConnection() -> AsyncStream<Bool> {
+        let updates = connectionUpdates
+        return AsyncStream { continuation in
+            for value in updates { continuation.yield(value) }
+            continuation.finish()
         }
     }
 

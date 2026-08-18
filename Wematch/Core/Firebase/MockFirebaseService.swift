@@ -5,7 +5,7 @@ import OSLog
 final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
 
     private var storage: [String: [String: Any]] = [:]
-    private var continuations: [String: AsyncStream<[String: Any]>.Continuation] = [:]
+    private var continuations: [String: AsyncThrowingStream<[String: Any], Error>.Continuation] = [:]
 
     func write(path: String, value: [String: any Sendable]) async throws {
         storage[path] = value
@@ -17,8 +17,8 @@ final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
         notifyObservers(for: path)
     }
 
-    func observe(path: String) -> AsyncStream<[String: Any]> {
-        AsyncStream { continuation in
+    func observe(path: String) -> AsyncThrowingStream<[String: Any], Error> {
+        AsyncThrowingStream { continuation in
             self.continuations[path] = continuation
 
             // Yield current state
@@ -28,6 +28,18 @@ final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
             continuation.onTermination = { @Sendable _ in
                 // Cleanup handled by disconnect()
             }
+        }
+    }
+
+    func read(path: String) async throws -> [String: Any] {
+        buildSnapshot(for: path)
+    }
+
+    func observeConnection() -> AsyncStream<Bool> {
+        // The in-memory store is always "reachable".
+        AsyncStream { continuation in
+            continuation.yield(true)
+            continuation.finish()
         }
     }
 

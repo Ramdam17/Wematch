@@ -18,15 +18,41 @@ final class WatchHeartRateStatusTests: XCTestCase {
 
         for healthy in [WatchHeartRateStatus.idle, .waitingForFirstSample, .streaming] {
             XCTAssertFalse(healthy.needsAttention, "\(healthy.rawValue) must not alarm anyone")
-            XCTAssertNil(healthy.explanation, "\(healthy.rawValue) has nothing to explain")
+            XCTAssertNil(healthy.watchExplanation, "\(healthy.rawValue) has nothing to explain")
+            XCTAssertNil(healthy.phoneSummary, "\(healthy.rawValue) has nothing to report")
         }
     }
 
     func testEveryStatusThatNeedsAttentionSaysWhatToDo() {
         for status in WatchHeartRateStatus.allCases where status.needsAttention {
-            let explanation = status.explanation
+            let explanation = status.watchExplanation
             XCTAssertNotNil(explanation, "\(status.rawValue) alarms without explaining")
             XCTAssertFalse(explanation?.isEmpty ?? true)
+        }
+    }
+
+    // MARK: - One fact, two devices
+    //
+    // The Watch is where the user can act (Settings → Privacy → Health), so it gets the
+    // instruction. The phone can only name the fault, and its banner sits on top of the
+    // plot — so it gets one short sentence instead of three lines of advice.
+
+    func testThePhoneAndTheWatchDoNotSayTheSameThing() {
+        for status in WatchHeartRateStatus.allCases where status.needsAttention {
+            XCTAssertNotEqual(status.phoneSummary, status.watchExplanation,
+                              "\(status.rawValue) repeats an instruction the phone cannot act on")
+        }
+    }
+
+    func testThePhoneSummaryIsShortEnoughToSitOverThePlot() {
+        for status in WatchHeartRateStatus.allCases where status.needsAttention {
+            let summary = status.phoneSummary ?? ""
+            XCTAssertFalse(summary.isEmpty, "\(status.rawValue) alarms without saying anything")
+            // Two lines at default type in a room-width pill; the three-line version is
+            // what this replaces. Not a measurement — a ceiling, checked in the canvas.
+            XCTAssertLessThanOrEqual(summary.count, 48, "'\(summary)' will wrap onto the plot")
+            XCTAssertLessThan(summary.count, status.watchExplanation?.count ?? 0,
+                              "the phone's wording must be the shorter of the two")
         }
     }
 
