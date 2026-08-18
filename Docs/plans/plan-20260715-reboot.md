@@ -106,9 +106,26 @@ navigation coordinator with single room source of truth + `.onOpenURL` deep-link
 **Acceptance:** swift-reviewer re-run on Rooms/Groups: no CRITICAL; entering the same room
 from 2 tabs impossible.
 
+### Sprint 3d — Notifications
+Promoted from the v2 backlog (decision 2026-08-17). Runs after 3c: tapping a notification
+must land somewhere, and that path is 3c's `.onOpenURL` skeleton. First server-side code in
+the repo — a `functions/` project deployed from git like the rules, triggered on writes to
+`inbox/{uid}/messages`, fanning out to the recipient's FCM tokens for all eight
+`InboxMessageType` cases. Client side: Push capability re-enabled (`aps-environment` returns,
+deliberately this time), authorization requested at the first inbox-producing action rather
+than at launch, FCM token stored under its owner and rotated, token deletion wired into
+sign-out and into `AccountDeletionService`; Firestore rules + emulator tests for the token
+collection; availability behind `FeatureFlagProvider`. `UIBackgroundModes:
+remote-notification` is kept only if silent push proves necessary — alert push does not need
+it. **No heart rate in a payload, ever**: message type, sender display name, target ID,
+nothing else.
+**Acceptance:** two accounts, two devices, app killed — each of the eight types delivers
+exactly one notification and tapping it opens the screen that message concerns; an
+intercepted payload carries no HR value; sign-out and account deletion leave zero tokens
+(Firestore console); rules tests prove one user cannot read or write another's tokens.
+
 ### Phase 3+ — v2 backlog (post-reboot, separate plan)
-Real dashboards, dark cosmic theme, remote feature flags, push notifications (needs the
-deep-link work), localization FR.
+Real dashboards, dark cosmic theme, remote feature flags, localization FR.
 
 ---
 
@@ -208,3 +225,17 @@ Sprint-12 dashboard stubs: metrics derive from SessionLog/SyncEvent; iPhone comp
 pushes a snapshot via WCSession (Watch stays a passive display). Code decision pending:
 "time in sync" = union of SyncEvent intervals vs plain sum (sum overcounts overlapping
 clusters). Design source of truth: Figma file wematch-ds-001 (b3bezjB9kQ1CcRfghj4Saw).
+
+**2026-08-17 — Push notifications promoted from the v2 backlog to Sprint 3d (decision
+Rémy).** Scope: all eight `InboxMessageType` cases, not a subset — the Inbox is invisible
+until the app is opened, so every type it models is a message nobody receives. Sequencing
+was arbitrated against making it block the field session: the twelve cases of
+`Docs/field-tests/session-script.md` (S0–S12) were read and **none depends on a
+notification** — S1 is "A opens a room, B joins the same room", and S10's invitation is
+accepted in person, in-app. The field session measures the one thing nothing else can (the
+Watch/HealthKit path has never run on hardware once) and can invalidate notification work,
+while notification work cannot invalidate it; the cost of being wrong in this order is one
+extra TestFlight build, and internal testers need no review. Notifications therefore land
+after the session, with the 3c work they depend on. Entitlement consequence:
+`aps-environment`, removed the same day as dead surface, returns with 3d — with code behind
+it this time.

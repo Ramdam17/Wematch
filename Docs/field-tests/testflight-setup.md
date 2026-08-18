@@ -36,21 +36,27 @@ There is no separate Watch upload.
 
 ## Decisions before the first upload
 
-Each costs one line. The first is done; the other two are still open.
+All three are closed (2026-08-17).
 
 1. ~~**`WKBackgroundModes` = `workout-processing` on the Watch target.**~~ **Done** — the
    Watch target now has its own `Info.plist` carrying the array, verified in the shipped
    bundle. Without it a `HKWorkoutSession` runs only while the app is in the foreground.
-2. **Export compliance.** `ITSAppUsesNonExemptEncryption` is not set, so App Store Connect
-   asks the question on every upload. Wematch uses only standard TLS (Firebase), the
-   ordinary exemption. Setting `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO` retires
-   the prompt.
-3. **Dead capabilities.** `Wematch.entitlements` still carries `icloud-services: CloudKit`
-   and `healthkit.background-delivery`. The CloudKit layer was purged in 1.2d and the
-   iPhone never queries HealthKit directly — HR arrives over WatchConnectivity. Both are
-   unused capability surface on a build handed to colleagues. Already on the plan as
-   finding **F6** (sprint 3b, "remove unused entitlements") — worth pulling forward if the
-   build is going to colleagues first.
+2. ~~**Export compliance.**~~ **Done** — `ITSAppUsesNonExemptEncryption` is `false` in
+   `Wematch/Info.plist`, verified in the built bundle (`plutil -p Wematch.app/Info.plist`).
+   Wematch uses only standard TLS (Firebase), the ordinary exemption, so App Store Connect
+   no longer asks on every upload. Revisit if custom cryptography is ever added.
+3. ~~**Dead capabilities.**~~ **Done** — four keys with no caller anywhere in the repo
+   were removed from `Wematch.entitlements`: `aps-environment`,
+   `healthkit.background-delivery`, `icloud-container-identifiers`, `icloud-services`.
+   Verified in `Wematch.app-Simulated.xcent`, the entitlements the build actually applies,
+   which now carries only `application-identifier`, `applesignin` and `healthkit`. A
+   simulator build does not sign entitlements, so the final proof is the first device
+   archive. Two things deliberately left alone: `com.apple.developer.healthkit` (the phone
+   still *asks* for authorization at `RoomViewModel.swift:163` and refuses room entry
+   without it — entitlement and call must go together, decision pending) and
+   `UIBackgroundModes: remote-notification` (sprint 3d decides it; only silent push needs
+   it). `aps-environment` returns with 3d, backed by code that time. Finding **F6** in
+   sprint 3b is thereby mostly closed ahead of schedule.
 
 ## Archive and upload
 
