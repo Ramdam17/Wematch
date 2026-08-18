@@ -14,6 +14,11 @@ final class RoomViewModel {
     private(set) var isLoading = false
     var error: Error?
 
+    /// What the Watch reports about its own heart-rate feed: a denied read produces
+    /// no error and no data, so `.silent`/`.stopped` are the only evidence there is.
+    /// Not `private(set)` — the consumer is an extension in another file.
+    var watchHeartRateStatus: WatchHeartRateStatus = .idle
+
     // MARK: - Room Info
 
     let roomID: String
@@ -40,6 +45,8 @@ final class RoomViewModel {
     private var observeTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
     private var simulationTask: Task<Void, Never>?
+    /// Internal for the same reason as `watchHeartRateStatus`.
+    var watchMessageTask: Task<Void, Never>?
 
     // MARK: - Simulated Room Service
 
@@ -192,6 +199,8 @@ final class RoomViewModel {
         // 3. Start observing other participants
         startObservingParticipants()
 
+        startObservingWatchMessages()
+
         // 4. Start streaming heart rate
         startHeartRateStreaming()
 
@@ -230,10 +239,13 @@ final class RoomViewModel {
         heartRateTask?.cancel()
         simulationTask?.cancel()
         starTimerTask?.cancel()
+        watchMessageTask?.cancel()
         observeTask = nil
         heartRateTask = nil
         simulationTask = nil
         starTimerTask = nil
+        watchMessageTask = nil
+        watchHeartRateStatus = .idle
 
         #if targetEnvironment(simulator)
         simulatedRoomService.stopSimulation()

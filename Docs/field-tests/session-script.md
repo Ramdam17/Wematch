@@ -71,6 +71,24 @@ the Watch app, not just a setting.
 
 ---
 
+## S2b — What silence looks like (calibrates a guessed number)
+
+1. Before entering, B denies **heart rate** for Wematch on the Watch (Watch Settings →
+   Privacy & Security → Health, or decline the prompt at first entry). A stays granted.
+2. B enters the room.
+
+**Expect** — B's Watch shows "No heart rate yet. Check Wematch has heart-rate access in
+the Watch Settings app." rather than an empty plot. A's phone logs the same status.
+**Expect** — A's own heart still plots normally; one denied Watch does not break the room.
+**Measure** — with permission *granted*, seconds from entering the room to the first heart
+rate on the Watch. `WatchHeartRateStatus.firstSampleTimeout` is currently **20 s and is a
+guess** — no Wematch build has ever run on a Watch. If the real cold start is 8 s, the
+threshold is needlessly slow; if it is 25 s, the app cries wolf on every entry. Write the
+number down; it replaces the constant.
+3. Re-grant the permission and confirm the warning clears without restarting the app.
+
+---
+
 ## S3 — Sync
 
 1. Both sit still and breathe slowly together, or one walks in place, until the two hearts

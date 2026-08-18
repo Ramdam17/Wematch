@@ -60,6 +60,25 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
         }
     }
 
+    /// Tells the iPhone what the heart-rate feed is actually doing. Sent on every
+    /// transition, not periodically: the iPhone otherwise cannot tell a denied
+    /// read from a Watch that simply has nothing to say yet.
+    func sendHeartRateStatus(_ status: WatchHeartRateStatus) {
+        guard WCSession.default.isReachable else {
+            logger.warning("iPhone not reachable — status '\(status.rawValue)' not sent")
+            return
+        }
+
+        let message: [String: Any] = [
+            "type": "heartRateStatus",
+            "status": status.rawValue
+        ]
+
+        WCSession.default.sendMessage(message, replyHandler: nil) { [weak self] error in
+            self?.logger.error("Failed to send HR status: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Receiving Commands from iPhone
 
     var receivedMessages: AsyncStream<[String: Any]> {

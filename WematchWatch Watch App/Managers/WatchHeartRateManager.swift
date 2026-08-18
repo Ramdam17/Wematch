@@ -13,7 +13,11 @@ final class WatchHeartRateManager: NSObject, @unchecked Sendable {
     private var builder: HKLiveWorkoutBuilder?
     private var streamContinuation: AsyncStream<Double>.Continuation?
 
-    private(set) var isAuthorized = false
+    /// Whether authorization has been *asked for* — not whether it was granted.
+    /// `requestAuthorization` returns normally on a denial, so granted-ness is not
+    /// knowable here; see `WatchHeartRateStatus`. Naming this `isAuthorized` is
+    /// what made the denial path silent.
+    private(set) var hasRequestedAuthorization = false
     private(set) var isStreaming = false
 
     // MARK: - Authorization
@@ -22,12 +26,14 @@ final class WatchHeartRateManager: NSObject, @unchecked Sendable {
         let heartRateType = HKQuantityType(.heartRate)
         let workoutType = HKObjectType.workoutType()
 
+        // Throws on system errors only (missing usage key, HealthKit unavailable).
+        // A user tapping "Don't Allow" returns normally — WWDC 2020-10664.
         try await healthStore.requestAuthorization(
             toShare: [workoutType],
             read: [heartRateType]
         )
-        isAuthorized = true
-        logger.info("HealthKit authorization granted")
+        hasRequestedAuthorization = true
+        logger.info("HealthKit authorization requested (grant status unknowable)")
     }
 
     // MARK: - Workout Session

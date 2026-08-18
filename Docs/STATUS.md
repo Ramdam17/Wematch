@@ -31,7 +31,7 @@ baseline, CI (`fcf47be`).
 | 1.2 Social graph on Firestore, CloudKit purged | done — see [0001](decisions/0001-firestore-for-the-social-graph.md) |
 | 1.3 Privacy manifest, Keychain ACL, private HR logs | done |
 | 1.4–1.6 Room teardown, listener unwind, scenePhase | done |
-| 1.7 Error paths; connection-state indicator (D1–D3) | **open** |
+| 1.7 Error paths; connection-state indicator (D1–D3) | **open** — one piece landed early: the Watch now reports a dead heart-rate feed instead of rendering an empty plot (`WatchHeartRateStatus`, script case S2b) |
 | 1.8 CloudKit robustness (D4) | **open** — re-scope: the CloudKit layer is gone |
 | 1.9 Temp-room ID parsing (E1) | done early, in 1.2c |
 | 1.10 The two unsafe `@unchecked Sendable`; typed WatchMessage | **open** |
@@ -86,7 +86,7 @@ freezes the read on the main actor permanently. **Fix the isolation, not the war
 |---|---|---|
 | `send(message:)` is `throws` but returns *normally* when the Watch is unreachable: it logs, and the caller cannot tell "sent" from "dropped". Contradicts the no-silent-failure rule | `Core/WatchConnectivity/PhoneSessionManager.swift:46` | 1.7 (D1) |
 | `UIBackgroundModes` = `remote-notification` is declared with no push code behind it — a background mode without its functionality is a classic rejection motive (2.5.4). Deliberately left in place rather than removed: 3d decides it with code in front of it, since only *silent* push needs it | `Wematch/Info.plist` | 3d |
-| The iPhone asks for HealthKit authorization (`RoomViewModel.swift:163`) for a read it never performs — on the phone, HR arrives over WatchConnectivity (`HealthKitHeartRateService.swift:19`). A refusal returns `RoomError.healthKitDenied` and **blocks entry into the room**. Removing the entitlement alone would break joining: the call goes with it, or neither does | `Wematch/Wematch.entitlements`, `RoomViewModel.swift:163` | open — needs a decision |
+| The iPhone asks for HealthKit authorization (`RoomViewModel.swift:173`) for a read it never performs — on the phone, HR arrives over WatchConnectivity (`HealthKitHeartRateService.swift:19`). **A refusal does not block anything**: `requestAuthorization` returns normally on denial and throws only on system errors (WWDC 2020-10664), so `RoomError.healthKitDenied` is named for a case it never sees. It *does* fire if the entitlement is removed — which is why the entitlement and the call go together, or neither does | `Wematch/Wematch.entitlements`, `RoomViewModel.swift:173` | open — needs a decision |
 | The iPhone's `NSHealthUpdateUsageDescription` describes *reading* ("fetch heartrate from the Apple Watch"), but the phone never writes to HealthKit — reading is covered by `NSHealthShareUsageDescription`, which is present in `Wematch/Info.plist`. Harmless until a write is requested, then it shows the wrong sentence to the user | `Wematch.xcodeproj/project.pbxproj` | 3b (F6) |
 
 ## Blocked on Rémy
