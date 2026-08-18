@@ -89,8 +89,11 @@ extension RoomViewModel {
         let safeUserID = userID.firebaseSafe()
 
         do {
-            // Off the main actor: the file grows with every session the user ever plays,
-            // and a glanceable screen is not worth a hitch on the plot.
+            // Intended to run off the main actor — the file grows with every session the
+            // user ever plays. It does NOT today: `DashboardRecordStoring` inherits the
+            // project's MainActor default isolation, so this detached task hops straight
+            // back. Plan 1.10; see "Found in passing" in Docs/STATUS.md, and fix the
+            // isolation rather than the warning.
             let records = try await Task.detached { try store.load() }.value
             let snapshot = WatchDashboardSnapshot.make(from: records, userID: safeUserID)
 

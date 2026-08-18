@@ -148,7 +148,7 @@ enum WematchTheme {
     /// compresses the hue space so hard that separability saturates near dE 7.5 no matter
     /// how many slots are asked for. Letting `plotMarkerOutline` provide the boundary
     /// keeps the hues as designed in both modes.
-    static let heartColorHexes: [String] = [
+    nonisolated static let heartColorHexes: [String] = [
         "D3698D", "FA4249", "EFBBA9",
         "FAAA42", "D5C66D", "DCFA42",
         "CFF8A0", "6EFA42", "79D87F",
@@ -158,7 +158,7 @@ enum WematchTheme {
         "FA42EF", "E8B0D4",
     ]
 
-    static let heartColors: [Color] = heartColorHexes.map { Color(hex: $0) }
+    nonisolated static let heartColors: [Color] = heartColorHexes.map { Color(hex: $0) }
 
     /// The brand heart (`brand/gradient/0`), for hero art and empty states.
     ///
@@ -168,7 +168,9 @@ enum WematchTheme {
     /// this.
     static let brandHeart = Color(hex: "FF6B9D")
 
-    static func heartColor(for slot: HeartPaletteSlot) -> Color {
+    /// `nonisolated` because it is a pure lookup in a Sendable array, and callers reach
+    /// it from nonisolated contexts (a `View`'s computed property, for one).
+    nonisolated static func heartColor(for slot: HeartPaletteSlot) -> Color {
         heartColors[slot.index]
     }
 

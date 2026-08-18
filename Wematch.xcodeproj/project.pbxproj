@@ -92,6 +92,13 @@
 			);
 			target = A59A71E12F3D725D00EED109 /* Wematch */;
 		};
+		11D790B1F729E361FBB08F69 /* Exceptions for "WematchWatch Watch App" folder in "WematchWatch Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A59A72632F3D86B100EED109 /* WematchWatch Watch App */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -110,6 +117,9 @@
 		};
 		A59A72652F3D86B100EED109 /* WematchWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				11D790B1F729E361FBB08F69 /* Exceptions for "WematchWatch Watch App" folder in "WematchWatch Watch App" target */,
+			);
 			path = "WematchWatch Watch App";
 			sourceTree = "<group>";
 		};
@@ -648,6 +658,7 @@
 				DEVELOPMENT_TEAM = TFK566BG76;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WematchWatch Watch App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = WematchWatch;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Wematch reads your heart rate to share it in real time with your group.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Wematch uses a workout session to stream your heart rate in real time.";
@@ -684,6 +695,7 @@
 				DEVELOPMENT_TEAM = TFK566BG76;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WematchWatch Watch App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = WematchWatch;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Wematch reads your heart rate to share it in real time with your group.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Wematch uses a workout session to stream your heart rate in real time.";
