@@ -32,6 +32,7 @@ final class WatchRoomViewModel {
 
     private var streamTask: Task<Void, Never>?
     private var silenceTask: Task<Void, Never>?
+    private var roomUpdateTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -45,9 +46,16 @@ final class WatchRoomViewModel {
         guard !isInRoom else { return }
         isInRoom = true
 
-        // Wire up room update handler
-        WatchSessionManager.shared.roomUpdateHandler = { [weak self] update in
-            self?.handleRoomUpdate(update)
+        // Take our own stream of what the iPhone sends. It used to be a closure stored
+        // on the session manager: a `var` written here on the main actor, read on the
+        // WatchConnectivity delegate queue, and re-dispatched through
+        // `DispatchQueue.main.async` — a data race wrapped in an ordering hazard
+        // (plan 1.10).
+        roomUpdateTask = Task { [weak self] in
+            for await message in WatchSessionManager.shared.messages() {
+                guard case .roomUpdate(let update) = message else { continue }
+                self?.handleRoomUpdate(update)
+            }
         }
 
         // Start HR streaming
@@ -71,7 +79,7 @@ final class WatchRoomViewModel {
                 guard !Task.isCancelled else { break }
                 ownHeartRate = hr
                 update(.streaming)
-                WatchSessionManager.shared.sendHeartRate(hr)
+                WatchSessionManager.shared.send(.heartRate(bpm: hr, at: Date()))
             }
 
             isStreaming = false
@@ -94,7 +102,8 @@ final class WatchRoomViewModel {
         silenceTask?.cancel()
         silenceTask = nil
         heartRateManager.stopStreaming()
-        WatchSessionManager.shared.roomUpdateHandler = nil
+        roomUpdateTask?.cancel()
+        roomUpdateTask = nil
 
         isInRoom = false
         isStreaming = false
@@ -115,7 +124,7 @@ final class WatchRoomViewModel {
         guard heartRateStatus != status else { return }
         heartRateStatus = status
         logger.info("Heart rate status: \(status.rawValue, privacy: .public)")
-        WatchSessionManager.shared.sendHeartRateStatus(status)
+        WatchSessionManager.shared.send(.heartRateStatus(status))
     }
 
     /// Flips to `.silent` if the first sample never arrives. This is the whole
@@ -132,8 +141,8 @@ final class WatchRoomViewModel {
 
     // MARK: - Room Update Handler
 
-    private func handleRoomUpdate(_ update: WatchRoomUpdate) {
-        participants = update.participants
+    private func handleRoomUpdate(_ update: WatchMessage.RoomUpdate) {
+        participants = update.participants.map(WatchParticipant.init)
         currentUserID = update.currentUserID
         maxChain = update.maxChain
         syncedCount = update.syncedCount

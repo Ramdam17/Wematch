@@ -6,6 +6,9 @@ import Foundation
 /// Without injecting this, every test that enters and leaves a room writes real records
 /// into the test host's container: not hermetic, order-dependent, and it grows on every
 /// run. Same reason `InMemoryKeychain` exists.
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
 final class InMemoryDashboardRecordStore: DashboardRecordStoring, @unchecked Sendable {
     // Test-only: single-threaded XCTest access.
     private var stored = DashboardRecords.empty

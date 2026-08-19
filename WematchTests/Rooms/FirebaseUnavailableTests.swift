@@ -7,7 +7,9 @@ import XCTest
 /// fails, and says which one.
 final class FirebaseUnavailableTests: XCTestCase {
 
-    private let service = FirebaseRealtimeService(database: nil)
+    /// `nonisolated`: the service is, and iterating its stream happens outside the main
+    /// actor the test class otherwise inherits from the project's default isolation.
+    private nonisolated let service = FirebaseRealtimeService(database: nil)
 
     func testWritingWithoutFirebaseThrows() async {
         do {
@@ -38,7 +40,8 @@ final class FirebaseUnavailableTests: XCTestCase {
 
     func testObservingWithoutFirebaseThrows() async {
         do {
-            for try await _ in service.observe(path: "rooms/room1/users") {
+            let stream = service.observe(path: "rooms/room1/users")
+            for try await _ in stream {
                 XCTFail("nothing can arrive from a database that is not there")
             }
             XCTFail("the stream must fail, not finish quietly")

@@ -4,9 +4,10 @@ import Foundation
 /// In-memory FirebaseServiceProtocol recording every write/remove path and
 /// every observe-stream termination — lets tests verify cleanup chains
 /// (E1 index removal, C2 listener teardown) end to end.
+/// **`@unchecked Sendable` justification** (plan 1.10): test-only, single-threaded XCTest
+/// access. The observe-termination record is written from the stream's termination
+/// handler, serialised behind the `await` that drains it.
 final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
-    // Test-only fake: single-threaded XCTest access (observe termination is
-    // recorded from the stream's termination handler, serialized by await).
     var storage: [String: [String: any Sendable]] = [:]
     var removedPaths: [String] = []
     var observeTerminations: [String] = []
@@ -23,16 +24,16 @@ final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
     /// Thrown by the observe stream instead of yielding — the permission-denied case.
     var observeError: Error?
 
-    func read(path: String) async throws -> [String: Any] {
+    func read(path: String) async throws -> FirebaseSnapshot {
         if let readError { throw readError }
-        return storage[path] ?? [:]
+        return FirebaseSnapshot(storage[path] ?? [:])
     }
 
     /// Thrown by `read`.
     var readError: Error?
 
-    func observe(path: String) -> AsyncThrowingStream<[String: Any], Error> {
-        let snapshot = storage[path] ?? [:]
+    func observe(path: String) -> AsyncThrowingStream<FirebaseSnapshot, Error> {
+        let snapshot = FirebaseSnapshot(storage[path] ?? [:])
         let keepOpen = keepObserveOpen
         let error = observeError
         return AsyncThrowingStream { continuation in

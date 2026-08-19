@@ -78,8 +78,14 @@ final class WatchDashboardSnapshotTests: XCTestCase {
     }
 
     // MARK: - Wire format
+    //
+    // These used to assert on a hand-built `[String: Any]` and on optionals being omitted
+    // from it, because WCSession carries property-list types and `NSNull` is not one. The
+    // snapshot now crosses inside a `WatchMessage`, encoded once (plan 1.10) — so the
+    // question is no longer which keys were written, it is whether the value the Watch
+    // decodes is the value the phone computed.
 
-    func testThePayloadCarriesEveryFieldItHasAValueFor() {
+    func testTheSnapshotSurvivesTheWireUnchanged() throws {
         let snapshot = WatchDashboardSnapshot(
             bestPartnerName: "brave_otter",
             bestPartnerSlot: 7,
@@ -88,20 +94,23 @@ final class WatchDashboardSnapshotTests: XCTestCase {
             biggestCluster: 5
         )
 
-        let payload = snapshot.messagePayload
+        let encoded = try WatchMessage.dashboardUpdate(snapshot).encoded()
+        guard case .dashboardUpdate(let decoded) = try WatchMessage.decoded(from: encoded) else {
+            return XCTFail("a dashboard update decoded as something else")
+        }
 
-        XCTAssertEqual(payload["bestPartnerName"] as? String, "brave_otter")
-        XCTAssertEqual(payload["bestPartnerSlot"] as? Int, 7)
-        XCTAssertEqual(payload["starsMade"] as? Int, 128)
-        XCTAssertEqual(payload["connectedSeconds"] as? TimeInterval, 13_320)
-        XCTAssertEqual(payload["biggestCluster"] as? Int, 5)
+        XCTAssertEqual(decoded, snapshot)
     }
 
-    func testAbsentOptionalsAreOmittedRatherThanSentAsNull() {
-        let payload = WatchDashboardSnapshot.empty.messagePayload
+    func testAnEmptySnapshotSurvivesTheWireToo() throws {
+        let encoded = try WatchMessage.dashboardUpdate(.empty).encoded()
+        guard case .dashboardUpdate(let decoded) = try WatchMessage.decoded(from: encoded) else {
+            return XCTFail("a dashboard update decoded as something else")
+        }
 
-        XCTAssertNil(payload["bestPartnerName"], "WCSession carries property-list types; NSNull is not one")
-        XCTAssertNil(payload["bestPartnerSlot"])
+        XCTAssertEqual(decoded, .empty)
+        XCTAssertNil(decoded.bestPartnerName, "an absent partner must stay absent, not become a name")
+        XCTAssertNil(decoded.bestPartnerSlot)
     }
 
     // MARK: - Helpers

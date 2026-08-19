@@ -43,8 +43,8 @@ enum WematchTheme {
 
     /// Gradient stops per mode (`bg/0`…`bg/2`), kept as hex so the accessibility tests can
     /// measure against the same values the gradient actually draws.
-    static let backgroundHexesLight = ["FDF2F8", "F3E8FF", "EDE9FE"]
-    static let backgroundHexesDark = ["1A0B20", "16102C", "12102A"]
+    nonisolated static let backgroundHexesLight = ["FDF2F8", "F3E8FF", "EDE9FE"]
+    nonisolated static let backgroundHexesDark = ["1A0B20", "16102C", "12102A"]
 
     static let backgroundColors: [Color] = zip(backgroundHexesLight, backgroundHexesDark)
         .map { adaptive(light: $0, dark: $1) }
@@ -197,7 +197,7 @@ enum WematchTheme {
 
     /// Exposed because the whole accessibility argument for keeping pastel fills in light
     /// mode rests on this number. `HeartPaletteSeparabilityTests` measures it.
-    static let plotMarkerOutlineLightAlpha: Double = 0.70
+    nonisolated static let plotMarkerOutlineLightAlpha: Double = 0.70
 
     // MARK: - Spacing
 

@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Sendable {
+nonisolated final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, Sendable {
 
     private let firebaseService: any FirebaseServiceProtocol
 
@@ -81,13 +81,13 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
 
     func fetchActiveRooms(userID: String) async throws -> [TemporaryRoom] {
         let snapshot = try await firebaseService.read(path: userIndexPath(userID))
-        return Self.parseRooms(from: snapshot)
+        return Self.parseRooms(from: snapshot.values)
     }
 
     func deleteRoom(roomID: String) async throws {
         // Resolve members from metadata — never from the roomID string (E1).
         let metadata = try await firebaseService.read(path: "rooms/\(roomID.firebaseSafe())/metadata")
-        if let memberIDs = metadata["memberIDs"] as? [String] {
+        if let memberIDs = metadata.values["memberIDs"] as? [String] {
             for memberID in memberIDs {
                 try await firebaseService.remove(path: indexPath(memberID, roomID))
             }
@@ -105,7 +105,7 @@ final class FirebaseTemporaryRoomRepository: TemporaryRoomRepository, @unchecked
 
     func hasParticipants(roomID: String) async throws -> Bool {
         let snapshot = try await firebaseService.read(path: roomUsersPath(roomID))
-        return !snapshot.isEmpty
+        return !snapshot.values.isEmpty
     }
 
     // MARK: - Parsing

@@ -148,7 +148,7 @@ final class RoomConnectionWiringTests: XCTestCase {
     func testASilentWatchFeedReachesTheRoomState() async throws {
         let auth = await makeSignedInAuth()
         let watch = MockWatchService()
-        watch.scriptedMessages = [["type": "heartRateStatus", "status": "silent"]]
+        watch.scriptedMessages = [.heartRateStatus(.silent)]
         let viewModel = makeViewModel(auth: auth, roomRepo: MockRoomRepository(), watch: watch)
 
         await viewModel.enterRoom()

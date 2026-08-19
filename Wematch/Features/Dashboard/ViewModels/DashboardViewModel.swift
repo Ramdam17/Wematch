@@ -61,9 +61,9 @@ final class DashboardViewModel {
         let safeUserID = userID.firebaseSafe()
 
         do {
-            // Intended to run off the main actor — the file carries every session the user
-            // has ever played. It does NOT today; see the note in
-            // `RoomViewModel+DashboardRecording.swift` and Docs/STATUS.md. Plan 1.10.
+            // Off the main actor, and now actually so — see the note on
+            // `DashboardRecordStoring`. The file carries every session the user has ever
+            // played (plan 1.10).
             let records = try await Task.detached { try store.load() }.value
 
             guard !records.isEmpty else {

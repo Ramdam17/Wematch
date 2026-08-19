@@ -3,12 +3,13 @@ import Foundation
 /// The Watch's copy of the dashboard numbers.
 ///
 /// Duplicated from the iPhone target rather than shared, like every other model here:
-/// `WematchShared` is iOS-only. The keys must match `WatchDashboardSnapshot`'s
-/// `messagePayload` on the phone side — keep the two in sync by hand.
+/// `WematchShared` is iOS-only. Both copies are `Codable` and cross inside a
+/// `WatchMessage`, so the stored properties — not a hand-written key list — are the
+/// contract; keep the two declarations in sync.
 ///
 /// Nothing is computed here. The Watch is a passive display: the phone unioned the
 /// intervals, picked the partner and resolved their name before any of it crossed.
-struct WatchDashboardSnapshot: Equatable, Sendable {
+nonisolated struct WatchDashboardSnapshot: Codable, Equatable, Sendable {
 
     var bestPartnerName: String?
     var bestPartnerSlot: Int?
@@ -41,18 +42,6 @@ struct WatchDashboardSnapshot: Equatable, Sendable {
         self.starsMade = starsMade
         self.connectedSeconds = connectedSeconds
         self.biggestCluster = biggestCluster
-    }
-
-    /// Decodes a WCSession payload, tolerating anything missing — a partial message
-    /// should degrade to zeros, never drop the whole update.
-    init?(message: [String: Any]) {
-        guard message["type"] as? String == "dashboardUpdate" else { return nil }
-
-        self.bestPartnerName = message["bestPartnerName"] as? String
-        self.bestPartnerSlot = message["bestPartnerSlot"] as? Int
-        self.starsMade = message["starsMade"] as? Int ?? 0
-        self.connectedSeconds = message["connectedSeconds"] as? TimeInterval ?? 0
-        self.biggestCluster = message["biggestCluster"] as? Int ?? 0
     }
 
     /// "3h 42m", "42m", "38s" — the coarsest unit that still says something.

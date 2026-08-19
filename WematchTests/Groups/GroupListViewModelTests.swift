@@ -3,7 +3,10 @@ import XCTest
 
 // MARK: - Mock Repository
 
-final class MockGroupRepository: GroupRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockGroupRepository: GroupRepository, @unchecked Sendable {
     var groups: [Group] = []
     var joinRequests: [JoinRequest] = []
     var deletedGroupIDs: [String] = []
@@ -88,8 +91,11 @@ final class GroupListViewModelTests: XCTestCase {
     private var authManager: AuthenticationManager!
     private var viewModel: GroupListViewModel!
 
-    override func setUp() {
-        super.setUp()
+    /// `async` rather than the plain `setUp()`: XCTest's synchronous hook is
+    /// `nonisolated`, so under Swift 6 it cannot touch this class's main-actor state. The
+    /// `async` overload inherits the test class's isolation (plan 1.10).
+    override func setUp() async throws {
+        try await super.setUp()
         mockRepo = MockGroupRepository()
         mockProfileRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()

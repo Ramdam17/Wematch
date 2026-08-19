@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import OSLog
 
 /// The phone's heart-rate source: a relay, not a HealthKit client.
@@ -8,29 +9,33 @@ import OSLog
 /// hold an `HKHealthStore` and request a read it never performed — removed with the
 /// iPhone's HealthKit entitlement.
 ///
-/// **The name is now wrong** and is kept only to avoid a rename inside this change;
-/// `WatchRelayHeartRateService` is what it should be called.
-final class HealthKitHeartRateService: HealthKitServiceProtocol, @unchecked Sendable {
+/// **The name is now wrong**; `WatchRelayHeartRateService` is what it should be called.
+/// Recorded in `Docs/STATUS.md` and left for its own change, since renaming it here would
+/// bury a file move inside a concurrency fix.
+///
+/// The continuation sits behind a mutex rather than under `@unchecked Sendable`: samples
+/// enter from whoever is draining the Watch's message stream and the stream is torn down
+/// from the room's exit path, and those are not guaranteed to be the same context.
+final class HealthKitHeartRateService: HealthKitServiceProtocol, Sendable {
 
-    private var streamContinuation: AsyncStream<Double>.Continuation?
+    private let streamContinuation = Mutex<AsyncStream<Double>.Continuation?>(nil)
 
     func startHeartRateStreaming() -> AsyncStream<Double> {
-        AsyncStream { continuation in
-            self.streamContinuation = continuation
-            continuation.onTermination = { @Sendable _ in
-                // Stream terminated
-            }
-        }
+        let (stream, continuation) = AsyncStream<Double>.makeStream()
+        streamContinuation.withLock { $0 = continuation }
+        return stream
     }
 
-    /// Called by PhoneSessionManager when receiving HR from Watch.
+    /// Called with each `.heartRate` message the Watch sends.
     func yield(heartRate: Double) {
-        streamContinuation?.yield(heartRate)
+        streamContinuation.withLock { _ = $0?.yield(heartRate) }
     }
 
     func stopHeartRateStreaming() {
-        streamContinuation?.finish()
-        streamContinuation = nil
+        streamContinuation.withLock { continuation in
+            continuation?.finish()
+            continuation = nil
+        }
         Log.healthKit.info("Heart rate streaming stopped")
     }
 }

@@ -17,19 +17,29 @@ struct FirestoreGroupRepository: GroupRepository {
     // MARK: - Groups
 
     func fetchMyGroups(userID: String) async throws -> [Group] {
-        guard let database else { throw FirebaseAuthError.notConfigured }
         // Firestore has no OR queries across fields — run both and merge.
-        async let asAdmin = database.collection("groups")
-            .whereField("adminID", isEqualTo: userID).getDocuments()
-        async let asMember = database.collection("groups")
-            .whereField("memberIDs", arrayContains: userID).getDocuments()
+        //
+        // Each branch builds its own query *and* maps the result inside its own child
+        // task. `Firestore`, `Query` and `QueryDocumentSnapshot` are none of them
+        // `Sendable`, so an `async let` that captured the handle from here — or handed
+        // back snapshots — would be sending non-`Sendable` values across a concurrency
+        // boundary. `Group` is `Sendable`, so that is what crosses (plan 1.10).
+        async let asAdmin = Self.groups { $0.whereField("adminID", isEqualTo: userID) }
+        async let asMember = Self.groups { $0.whereField("memberIDs", arrayContains: userID) }
 
-        let docs = try await asAdmin.documents + asMember.documents
+        let found = try await asAdmin + asMember
         var seen = Set<String>()
-        return docs.compactMap { doc in
-            guard seen.insert(doc.documentID).inserted else { return nil }
-            return Self.group(from: doc)
-        }
+        return found.filter { seen.insert($0.id).inserted }
+    }
+
+    /// Runs one groups query and maps it, entirely within the caller's task.
+    private static func groups(
+        _ narrow: @Sendable (CollectionReference) -> Query
+    ) async throws -> [Group] {
+        guard FirebaseApp.app() != nil else { throw FirebaseAuthError.notConfigured }
+        let collection = Firestore.firestore().collection("groups")
+        let snapshot = try await narrow(collection).getDocuments()
+        return snapshot.documents.compactMap { group(from: $0) }
     }
 
     func createGroup(name: String, adminID: String) async throws -> Group {

@@ -15,7 +15,7 @@ import Foundation
 ///
 /// Duplicated in the iPhone target until `WematchShared` becomes a real package
 /// (plan 1.11) — same pattern as `WatchDashboardSnapshot`.
-enum WatchHeartRateStatus: String, Equatable, Sendable, CaseIterable {
+nonisolated enum WatchHeartRateStatus: String, Codable, Equatable, Sendable, CaseIterable {
 
     /// No room, no workout — nothing is expected.
     case idle

@@ -3,7 +3,10 @@ import XCTest
 
 // MARK: - Mock Inbox Repository
 
-final class MockInboxRepository: InboxRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxRepository: InboxRepository, @unchecked Sendable {
     var messages: [InboxMessage] = []
     var markedAsReadIDs: [String] = []
     var markedAllAsReadUserIDs: [String] = []
@@ -44,7 +47,10 @@ final class MockInboxRepository: InboxRepository {
 
 // MARK: - Mock Group Repository (for inbox actions)
 
-final class MockInboxGroupRepository: GroupRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxGroupRepository: GroupRepository, @unchecked Sendable {
     var acceptedRequests: [(requestID: String, groupID: String, userID: String)] = []
     var declinedRequestIDs: [String] = []
 
@@ -72,7 +78,10 @@ final class MockInboxGroupRepository: GroupRepository {
 
 // MARK: - Mock Friend Repository (for inbox actions)
 
-final class MockInboxFriendRepository: FriendRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxFriendRepository: FriendRepository, @unchecked Sendable {
     var acceptedRequests: [String] = []
     var declinedRequestIDs: [String] = []
 
@@ -110,8 +119,11 @@ final class InboxViewModelTests: XCTestCase {
     private var authManager: AuthenticationManager!
     private var viewModel: InboxViewModel!
 
-    override func setUp() {
-        super.setUp()
+    /// `async` rather than the plain `setUp()`: XCTest's synchronous hook is
+    /// `nonisolated`, so under Swift 6 it cannot touch this class's main-actor state. The
+    /// `async` overload inherits the test class's isolation (plan 1.10).
+    override func setUp() async throws {
+        try await super.setUp()
         mockInboxRepo = MockInboxRepository()
         mockGroupRepo = MockInboxGroupRepository()
         mockFriendRepo = MockInboxFriendRepository()

@@ -1,6 +1,9 @@
 import Foundation
 
-struct InboxMessage: Identifiable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct InboxMessage: Identifiable, Sendable {
     let id: String
     let recipientID: String
     let type: InboxMessageType
@@ -39,7 +42,10 @@ extension InboxMessage {
 /// and `init(rawValue:)` are hand-written to the same shape, so call sites read the
 /// same — but the init is **not failable**, which is the whole point: there is no
 /// longer a way to decode a message into nothing.
-enum InboxMessageType: Sendable, Equatable, Hashable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated enum InboxMessageType: Sendable, Equatable, Hashable {
     case groupJoinRequest
     case groupRequestAccepted
     case groupRequestDeclined

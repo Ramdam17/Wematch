@@ -28,7 +28,9 @@ final class RoomViewModel {
 
     private let roomRepository: any RoomRepository
     private let tempRoomRepository: any TemporaryRoomRepository
-    private let healthKitService: any HealthKitServiceProtocol
+    /// Internal, not private: the Watch message extension in another file feeds it the
+    /// samples the Watch sends.
+    let healthKitService: any HealthKitServiceProtocol
     let watchService: any WatchConnectivityServiceProtocol
     private let authManager: AuthenticationManager
     /// Internal, not private: the dashboard recording lives in
@@ -123,6 +125,10 @@ final class RoomViewModel {
         self.roomName = roomName
         self.roomRepository = roomRepository ?? FirebaseRoomRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
+        // The last `.shared` a ViewModel names, and a default argument rather than a
+        // reached-for dependency: every test injects its own, so nothing here ever
+        // touches the singleton. It becomes an injected parameter when plan 3c builds
+        // the composition root that has somewhere to inject it from.
         self.watchService = watchService ?? PhoneSessionManager.shared
         self.dashboardStore = dashboardStore ?? DashboardRecordStore()
         self.authManager = authManager
@@ -190,14 +196,11 @@ final class RoomViewModel {
         // 3. Start streaming heart rate
         startHeartRateStreaming()
 
-        // 4. On real device: wire Watch HR → HealthKit stream, then tell Watch to start
+        // 4. On real device: tell the Watch to start its workout. The heart rate it
+        // sends back enters through `startObservingWatchMessages` above — no handler
+        // installed on a singleton, no downcast of the injected protocol (plan 1.10).
         #if !targetEnvironment(simulator)
-        if let hkService = healthKitService as? HealthKitHeartRateService {
-            PhoneSessionManager.shared.heartRateHandler = { [weak hkService] hr in
-                hkService?.yield(heartRate: hr)
-            }
-        }
-        sendWatchCommand("enterRoom", roomID: roomID)
+        sendWatchCommand(.enterRoom(roomID: roomID))
         #endif
 
         // 5. Start simulated room participants (simulator only)
@@ -248,10 +251,10 @@ final class RoomViewModel {
         // 2. Stop HR streaming
         healthKitService.stopHeartRateStreaming()
 
-        // 3. Tell Watch to stop HR session + disconnect handler
+        // 3. Tell the Watch to stop its workout. Nothing to disconnect: the message
+        // stream ends with `watchMessageTask`, cancelled in step 1.
         #if !targetEnvironment(simulator)
-        PhoneSessionManager.shared.heartRateHandler = nil
-        sendWatchCommand("exitRoom")
+        sendWatchCommand(.exitRoom)
         #endif
 
         // 4. Network cleanup — needs an identity; when the session is already

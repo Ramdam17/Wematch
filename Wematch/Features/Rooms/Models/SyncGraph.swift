@@ -2,12 +2,18 @@ import Foundation
 
 // MARK: - Cluster Types
 
-enum ClusterType: Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated enum ClusterType: Sendable {
     case soft
     case hard
 }
 
-struct SyncCluster: Identifiable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct SyncCluster: Identifiable, Sendable {
     let id: UUID
     let memberIDs: [String]
     let type: ClusterType
@@ -24,7 +30,10 @@ struct SyncCluster: Identifiable, Sendable {
 // MARK: - Sync Pair
 
 /// Canonical pair of user IDs (sorted) representing a sync edge.
-struct SyncPair: Hashable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct SyncPair: Hashable, Sendable {
     let id1: String
     let id2: String
 
@@ -41,7 +50,10 @@ struct SyncPair: Hashable, Sendable {
 
 // MARK: - SyncGraph
 
-struct SyncGraph: Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct SyncGraph: Sendable {
 
     let participants: [RoomParticipant]
     let syncThreshold: Double

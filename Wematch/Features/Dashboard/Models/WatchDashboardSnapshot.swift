@@ -9,7 +9,7 @@ import Foundation
 /// The partner's palette slot travels rather than a colour, for the same reason
 /// participants' do (see `HeartPaletteSlot`): each side renders the hue for its own mode,
 /// and a hex on the wire would freeze one.
-struct WatchDashboardSnapshot: Codable, Sendable, Equatable {
+nonisolated struct WatchDashboardSnapshot: Codable, Sendable, Equatable {
 
     /// The person the user has spent the most time in sync with.
     var bestPartnerName: String?
@@ -50,21 +50,5 @@ struct WatchDashboardSnapshot: Codable, Sendable, Equatable {
             connectedSeconds: metrics.connectedDuration,
             biggestCluster: metrics.maxClusterSize
         )
-    }
-
-    // MARK: - Wire format
-
-    /// WCSession carries property-list types, not `Codable`, so the snapshot crosses as a
-    /// plain dictionary. Kept next to the type rather than at the call site so both sides
-    /// read the same key names.
-    var messagePayload: [String: Any] {
-        var payload: [String: Any] = [
-            "starsMade": starsMade,
-            "connectedSeconds": connectedSeconds,
-            "biggestCluster": biggestCluster
-        ]
-        if let bestPartnerName { payload["bestPartnerName"] = bestPartnerName }
-        if let bestPartnerSlot { payload["bestPartnerSlot"] = bestPartnerSlot }
-        return payload
     }
 }

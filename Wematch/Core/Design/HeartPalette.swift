@@ -6,7 +6,10 @@ import Foundation
 /// renders the hue for its own colour mode: a vivid pastel on Dark Cosmic, a darkened
 /// variant on Pastel Light — where the pastels measured 1.14–2.73:1 against the
 /// background, well under the 3:1 floor for a graphical object.
-struct HeartPaletteSlot: Hashable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct HeartPaletteSlot: Hashable, Sendable {
     /// Number of hues in the palette. Slots wrap around it.
     static let count = 20
 

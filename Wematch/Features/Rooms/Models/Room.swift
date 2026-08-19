@@ -13,7 +13,10 @@ enum RoomType: String, Sendable {
     case temporary
 }
 
-struct RoomParticipant: Identifiable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct RoomParticipant: Identifiable, Sendable {
     let id: String
     let username: String
     var currentHR: Double
@@ -24,7 +27,7 @@ struct RoomParticipant: Identifiable, Sendable {
 
     // MARK: - Firebase Serialization
 
-    var firebaseDictionary: [String: Any] {
+    var firebaseDictionary: [String: any Sendable] {
         [
             "username": username,
             "currentHR": currentHR,

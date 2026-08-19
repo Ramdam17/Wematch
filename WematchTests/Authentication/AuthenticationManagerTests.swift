@@ -3,7 +3,10 @@ import XCTest
 
 // MARK: - Mocks
 
-final class MockUserProfileRepository: UserProfileRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockUserProfileRepository: UserProfileRepository, @unchecked Sendable {
     var profiles: [String: UserProfile] = [:]
     var takenUsernames: Set<String> = []
 
@@ -24,7 +27,11 @@ final class MockUserProfileRepository: UserProfileRepository {
     }
 }
 
-final class MockSignInWithAppleCoordinator: SignInWithAppleCoordinator {
+final /// `@unchecked Sendable` restated: the superclass is `@unchecked` because it is
+/// subclassable (see `SignInWithAppleCoordinator`), and Swift 6 requires a subclass to
+/// say so again rather than inherit the claim silently. Test-only; `result` is set before
+/// the manager is built and never mutated afterwards (plan 1.10).
+class MockSignInWithAppleCoordinator: SignInWithAppleCoordinator, @unchecked Sendable {
     var userIDToReturn: String = "mock_apple_user_id"
     var shouldThrow = false
 
@@ -51,8 +58,11 @@ final class AuthenticationManagerTests: XCTestCase {
     private var mockFirebaseAuth: MockFirebaseAuthService!
     private var authManager: AuthenticationManager!
 
-    override func setUp() {
-        super.setUp()
+    /// `async` rather than the plain `setUp()`: XCTest's synchronous hook is
+    /// `nonisolated`, so under Swift 6 it cannot touch this class's main-actor state. The
+    /// `async` overload inherits the test class's isolation (plan 1.10).
+    override func setUp() async throws {
+        try await super.setUp()
         mockRepo = MockUserProfileRepository()
         mockCoordinator = MockSignInWithAppleCoordinator()
         keychain = InMemoryKeychain()
@@ -212,6 +222,5 @@ final class AuthenticationManagerTests: XCTestCase {
     }
 }
 
-// MARK: - AuthState Equatable
-
-extension AuthState: Equatable {}
+// `AuthState` conforms to `Equatable` in the app module itself; the retroactive
+// conformance that used to live here is now a duplicate (plan 1.10).

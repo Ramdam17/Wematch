@@ -3,7 +3,10 @@ import XCTest
 
 // MARK: - Mock Repository
 
-final class MockFriendRepository: FriendRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockFriendRepository: FriendRepository, @unchecked Sendable {
     var friendships: [Friendship] = []
     var incomingRequests: [FriendRequest] = []
     var outgoingRequests: [FriendRequest] = []
@@ -82,7 +85,10 @@ final class MockFriendRepository: FriendRepository {
 
 // MARK: - Mock Inbox Repository
 
-final class MockInboxMessageRepository: InboxMessageRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxMessageRepository: InboxMessageRepository, @unchecked Sendable {
     var messages: [(recipientID: String, type: InboxMessageType, payload: [String: String])] = []
 
     func createMessage(recipientID: String, type: InboxMessageType, payload: [String: String]) async throws {
@@ -104,8 +110,11 @@ final class FriendListViewModelTests: XCTestCase {
     private var authManager: AuthenticationManager!
     private var viewModel: FriendListViewModel!
 
-    override func setUp() {
-        super.setUp()
+    /// `async` rather than the plain `setUp()`: XCTest's synchronous hook is
+    /// `nonisolated`, so under Swift 6 it cannot touch this class's main-actor state. The
+    /// `async` overload inherits the test class's isolation (plan 1.10).
+    override func setUp() async throws {
+        try await super.setUp()
         mockRepo = MockFriendRepository()
         mockProfileRepo = MockUserProfileRepository()
         mockInboxRepo = MockInboxMessageRepository()

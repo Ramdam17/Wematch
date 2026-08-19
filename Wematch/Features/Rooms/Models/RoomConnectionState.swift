@@ -13,7 +13,10 @@ import Foundation
 /// is stale) > `watchUnreachable` (no heart at all,
 /// and it names the cause) > `heartRateUnavailable` (no heart, cause unknown) >
 /// `notSharing` (we see them, they do not see us).
-enum RoomConnectionState: Equatable, Hashable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated enum RoomConnectionState: Equatable, Hashable, Sendable {
 
     /// Every link that should be up is up.
     case connected

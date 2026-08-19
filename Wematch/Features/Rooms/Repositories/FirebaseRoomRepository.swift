@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
+nonisolated final class FirebaseRoomRepository: RoomRepository, Sendable {
 
     private let firebaseService: any FirebaseServiceProtocol
 
@@ -68,7 +68,7 @@ final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
 
     func updateHeartRate(roomID: String, userID: String, data: HeartRateData, username: String, slot: HeartPaletteSlot) async throws {
         let path = userPath(roomID, userID)
-        var value = data.firebaseDictionary
+        var value: [String: any Sendable] = data.firebaseDictionary
         value["username"] = username
         value["colorSlot"] = slot.index
         try await firebaseService.write(path: path, value: value)
@@ -85,7 +85,7 @@ final class FirebaseRoomRepository: RoomRepository, @unchecked Sendable {
             let task = Task {
                 do {
                     for try await snapshot in firebaseService.observe(path: path) {
-                        continuation.yield(Self.parseParticipants(from: snapshot))
+                        continuation.yield(Self.parseParticipants(from: snapshot.values))
                     }
                     continuation.finish()
                 } catch {

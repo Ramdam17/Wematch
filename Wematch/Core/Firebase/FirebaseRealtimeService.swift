@@ -2,7 +2,15 @@ import Foundation
 import FirebaseDatabase
 import OSLog
 
-final class FirebaseRealtimeService: FirebaseServiceProtocol, @unchecked Sendable {
+/// **`@unchecked Sendable` justification** (plan 1.10). Required, not convenience: the
+/// Firebase SDK's `Database` and `DatabaseReference` are not `Sendable`-audited, so the
+/// single stored `let database` cannot be checked. What makes the type safe is that the
+/// property is immutable and every use is a call into the SDK, which serialises its own
+/// work on its own queue; this class holds no mutable state of its own. Observer teardown
+/// re-derives its reference from `database` and a `String` path rather than capturing a
+/// `DatabaseReference` into an escaping closure — that capture is the one thing the
+/// compiler *can* see, and it is gone.
+nonisolated final class FirebaseRealtimeService: FirebaseServiceProtocol, @unchecked Sendable {
 
     private let database: Database?
 
@@ -32,7 +40,7 @@ final class FirebaseRealtimeService: FirebaseServiceProtocol, @unchecked Sendabl
         Log.firebase.debug("Wrote to \(path)")
     }
 
-    func observe(path: String) -> AsyncThrowingStream<[String: Any], Error> {
+    func observe(path: String) -> AsyncThrowingStream<FirebaseSnapshot, Error> {
         guard let database else {
             Log.firebase.error("Firebase not configured — observe on \(path) cannot start")
             return AsyncThrowingStream { $0.finish(throwing: RoomError.firebaseUnavailable) }
@@ -46,28 +54,28 @@ final class FirebaseRealtimeService: FirebaseServiceProtocol, @unchecked Sendabl
             // and the room silently freezes instead of saying so.
             let handle = ref.observe(.value) { snapshot in
                 guard let value = snapshot.value as? [String: Any] else {
-                    continuation.yield([:])
+                    continuation.yield(.empty)
                     return
                 }
-                continuation.yield(value)
+                continuation.yield(FirebaseSnapshot(value))
             } withCancel: { error in
                 Log.firebase.error("Observation of \(path) cancelled: \(error.localizedDescription)")
                 continuation.finish(throwing: error)
             }
 
-            continuation.onTermination = { @Sendable _ in
-                ref.removeObserver(withHandle: handle)
+            continuation.onTermination = { @Sendable [weak self] _ in
+                self?.removeObserver(handle, atPath: path)
             }
         }
     }
 
-    func read(path: String) async throws -> [String: Any] {
+    func read(path: String) async throws -> FirebaseSnapshot {
         guard let database else {
             Log.firebase.error("Firebase not configured — read of \(path) cannot run")
             throw RoomError.firebaseUnavailable
         }
         let snapshot = try await database.reference().child(path).getData()
-        return snapshot.value as? [String: Any] ?? [:]
+        return FirebaseSnapshot(snapshot.value as? [String: Any] ?? [:])
     }
 
     func observeConnection() -> AsyncStream<Bool> {
@@ -88,10 +96,21 @@ final class FirebaseRealtimeService: FirebaseServiceProtocol, @unchecked Sendabl
             let handle = ref.observe(.value) { snapshot in
                 continuation.yield(snapshot.value as? Bool ?? false)
             }
-            continuation.onTermination = { @Sendable _ in
-                ref.removeObserver(withHandle: handle)
+            continuation.onTermination = { @Sendable [weak self] _ in
+                self?.removeConnectionObserver(handle)
             }
         }
+    }
+
+    /// Teardown for `observe(path:)`. Takes the path rather than the reference so that
+    /// nothing non-`Sendable` is captured into the escaping termination closure.
+    private func removeObserver(_ handle: DatabaseHandle, atPath path: String) {
+        database?.reference().child(path).removeObserver(withHandle: handle)
+    }
+
+    /// Same, for the `.info/connected` pseudo-path.
+    private func removeConnectionObserver(_ handle: DatabaseHandle) {
+        database?.reference(withPath: ".info/connected").removeObserver(withHandle: handle)
     }
 
     func remove(path: String) async throws {

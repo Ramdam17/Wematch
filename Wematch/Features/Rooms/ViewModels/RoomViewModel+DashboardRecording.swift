@@ -80,8 +80,8 @@ extension RoomViewModel {
     /// Sends the Watch a resolved dashboard snapshot.
     ///
     /// Goes through `watchService` rather than `PhoneSessionManager.shared`: the protocol
-    /// already carries arbitrary messages, so there is no reason to add a call site to the
-    /// singleton (plan 1.10 is removing the ones that exist).
+    /// already carries every message, so there is no reason to add a call site to the
+    /// singleton (plan 1.10 removed the ones that existed).
     func pushDashboardSnapshotToWatch() async {
         guard let userID = currentUserID else { return }
 
@@ -89,17 +89,14 @@ extension RoomViewModel {
         let safeUserID = userID.firebaseSafe()
 
         do {
-            // Intended to run off the main actor — the file grows with every session the
-            // user ever plays. It does NOT today: `DashboardRecordStoring` inherits the
-            // project's MainActor default isolation, so this detached task hops straight
-            // back. Plan 1.10; see "Found in passing" in Docs/STATUS.md, and fix the
-            // isolation rather than the warning.
+            // Off the main actor, and now actually so: `DashboardRecordStoring`'s
+            // requirements are `nonisolated`, so this detached task no longer hops
+            // straight back to the actor it was written to leave (plan 1.10). The file
+            // grows with every session the user ever plays, and the plot is drawing.
             let records = try await Task.detached { try store.load() }.value
             let snapshot = WatchDashboardSnapshot.make(from: records, userID: safeUserID)
 
-            var message = snapshot.messagePayload
-            message["type"] = "dashboardUpdate"
-            try await watchService.send(message: message)
+            try await watchService.send(.dashboardUpdate(snapshot))
         } catch {
             // The Watch simply keeps the numbers it had; nothing on the phone depends on
             // this landing, but a silent failure would make a stale Watch inexplicable.

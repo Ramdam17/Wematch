@@ -2,10 +2,16 @@ import Foundation
 import OSLog
 
 /// In-memory Firebase service for development without GoogleService-Info.plist.
-final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
+///
+/// **`@unchecked Sendable` justification** (plan 1.10): the two dictionaries below are
+/// mutable and unprotected. It is `#if DEBUG`-only substitution — release builds fail
+/// loudly instead of serving a room made of local state (plan 1.7) — and it is driven
+/// from the main actor by a single developer on a simulator. Locking it would buy
+/// nothing real and would make the fake less readable than the thing it fakes.
+nonisolated final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
 
     private var storage: [String: [String: Any]] = [:]
-    private var continuations: [String: AsyncThrowingStream<[String: Any], Error>.Continuation] = [:]
+    private var continuations: [String: AsyncThrowingStream<FirebaseSnapshot, Error>.Continuation] = [:]
 
     func write(path: String, value: [String: any Sendable]) async throws {
         storage[path] = value
@@ -17,13 +23,13 @@ final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
         notifyObservers(for: path)
     }
 
-    func observe(path: String) -> AsyncThrowingStream<[String: Any], Error> {
+    func observe(path: String) -> AsyncThrowingStream<FirebaseSnapshot, Error> {
         AsyncThrowingStream { continuation in
             self.continuations[path] = continuation
 
             // Yield current state
             let snapshot = self.buildSnapshot(for: path)
-            continuation.yield(snapshot)
+            continuation.yield(FirebaseSnapshot(snapshot))
 
             continuation.onTermination = { @Sendable _ in
                 // Cleanup handled by disconnect()
@@ -31,8 +37,8 @@ final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
         }
     }
 
-    func read(path: String) async throws -> [String: Any] {
-        buildSnapshot(for: path)
+    func read(path: String) async throws -> FirebaseSnapshot {
+        FirebaseSnapshot(buildSnapshot(for: path))
     }
 
     func observeConnection() -> AsyncStream<Bool> {
@@ -65,8 +71,7 @@ final class MockFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
 
     private func notifyObservers(for path: String) {
         guard let continuation = continuations[path] else { return }
-        let snapshot = buildSnapshot(for: path)
-        continuation.yield(snapshot)
+        continuation.yield(FirebaseSnapshot(buildSnapshot(for: path)))
     }
 
     private func buildSnapshot(for path: String) -> [String: Any] {

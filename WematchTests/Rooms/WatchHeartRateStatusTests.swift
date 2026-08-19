@@ -73,23 +73,67 @@ final class WatchHeartRateStatusTests: XCTestCase {
 
         XCTAssertEqual(viewModel.watchHeartRateStatus, .idle, "nothing reported yet")
 
-        watchService.deliver(["type": "heartRateStatus", "status": "silent"])
+        watchService.deliver(.heartRateStatus(.silent))
 
         let heard = await waitUntil { viewModel.watchHeartRateStatus == .silent }
         XCTAssertTrue(heard, "the phone must hear the Watch report a dead heart-rate feed")
     }
 
-    func testAMalformedStatusPayloadIsIgnoredRatherThanBelieved() async {
+    /// This used to hand the ViewModel `["type": "heartRateStatus", "status": "not_a_status"]`
+    /// and check it stayed `.idle`. Since plan 1.10 that dictionary cannot be built: the
+    /// seam carries a closed `WatchMessage`, so a malformed payload is rejected one layer
+    /// down, at the wire. The rejection is tested there — `WatchMessageTests` — and what
+    /// is left to pin here is that nothing arrives without a status attached.
+    func testNothingButAStatusMessageMovesTheStatus() async {
         let watchService = ScriptedWatchService()
         let viewModel = await makeViewModel(watchService: watchService)
         await viewModel.enterRoom()
 
-        watchService.deliver(["type": "heartRateStatus", "status": "not_a_status"])
-        watchService.deliver(["type": "heartRateStatus"])
+        watchService.deliver(.appLaunched)
+        watchService.deliver(.exitRoom)
 
         // Give the consumer a chance to act on them before asserting it did not.
         _ = await waitUntil(timeout: 0.3) { viewModel.watchHeartRateStatus != .idle }
-        XCTAssertEqual(viewModel.watchHeartRateStatus, .idle, "garbage must not become state")
+        XCTAssertEqual(viewModel.watchHeartRateStatus, .idle, "an unrelated message must not become state")
+    }
+
+    // MARK: - The heart rate itself
+
+    /// The behaviour plan 1.10 made testable at all.
+    ///
+    /// Before it, a heart rate reached the phone's stream through a closure installed on
+    /// `PhoneSessionManager.shared` and pointed at the concrete service the ViewModel
+    /// obtained by downcasting its own injected protocol. Nothing about that path could be
+    /// exercised without a Watch in the room — which is to say it has never been exercised,
+    /// on the one path the field session is about to run for the first time.
+    func testAHeartRateFromTheWatchReachesTheHeartRateSource() async {
+        let watchService = ScriptedWatchService()
+        let healthKit = MockHealthKitService()
+        let viewModel = await makeViewModel(watchService: watchService, healthKitService: healthKit)
+        await viewModel.enterRoom()
+
+        watchService.deliver(.heartRate(bpm: 61, at: Date()))
+        watchService.deliver(.heartRate(bpm: 64, at: Date()))
+
+        let arrived = await waitUntil { healthKit.relayedHeartRates.count == 2 }
+        XCTAssertTrue(arrived, "the Watch's heart rate never reached the phone's source")
+        XCTAssertEqual(healthKit.relayedHeartRates, [61, 64], "samples must arrive in order")
+    }
+
+    func testLeavingTheRoomStopsRelayingHeartRate() async {
+        let watchService = ScriptedWatchService()
+        let healthKit = MockHealthKitService()
+        let viewModel = await makeViewModel(watchService: watchService, healthKitService: healthKit)
+        await viewModel.enterRoom()
+
+        watchService.deliver(.heartRate(bpm: 61, at: Date()))
+        _ = await waitUntil { healthKit.relayedHeartRates == [61] }
+
+        await viewModel.exitRoom()
+        watchService.deliver(.heartRate(bpm: 200, at: Date()))
+
+        _ = await waitUntil(timeout: 0.3) { healthKit.relayedHeartRates.count > 1 }
+        XCTAssertEqual(healthKit.relayedHeartRates, [61], "a room we left must not still be reading hearts")
     }
 
     func testLeavingTheRoomForgetsTheStatus() async {
@@ -97,7 +141,7 @@ final class WatchHeartRateStatusTests: XCTestCase {
         let viewModel = await makeViewModel(watchService: watchService)
         await viewModel.enterRoom()
 
-        watchService.deliver(["type": "heartRateStatus", "status": "silent"])
+        watchService.deliver(.heartRateStatus(.silent))
         let heard = await waitUntil { viewModel.watchHeartRateStatus == .silent }
         XCTAssertTrue(heard, "nothing to forget if nothing was heard")
 
@@ -107,7 +151,10 @@ final class WatchHeartRateStatusTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeViewModel(watchService: any WatchConnectivityServiceProtocol) async -> RoomViewModel {
+    private func makeViewModel(
+        watchService: any WatchConnectivityServiceProtocol,
+        healthKitService: MockHealthKitService = MockHealthKitService()
+    ) async -> RoomViewModel {
         let profileRepo = MockUserProfileRepository()
         profileRepo.profiles["firebase_uid_mock"] = UserProfile(
             id: "firebase_uid_mock", username: "cosmic_panda0042",
@@ -126,7 +173,7 @@ final class WatchHeartRateStatusTests: XCTestCase {
             roomName: "Test room",
             roomRepository: MockRoomRepository(),
             tempRoomRepository: SpyTemporaryRoomRepository(),
-            healthKitService: MockHealthKitService(),
+            healthKitService: healthKitService,
             watchService: watchService,
             dashboardStore: InMemoryDashboardRecordStore(),
             authManager: auth
@@ -153,19 +200,20 @@ final class WatchHeartRateStatusTests: XCTestCase {
 final class ScriptedWatchService: WatchConnectivityServiceProtocol, @unchecked Sendable {
     var isReachable = true
 
-    private let stream: AsyncStream<[String: Any]>
-    private let continuation: AsyncStream<[String: Any]>.Continuation
+    private let stream: AsyncStream<WatchMessage>
+    private let continuation: AsyncStream<WatchMessage>.Continuation
 
     init() {
-        (stream, continuation) = AsyncStream<[String: Any]>.makeStream()
+        (stream, continuation) = AsyncStream<WatchMessage>.makeStream()
     }
 
     func activate() {}
-    func send(message: [String: Any]) async throws {}
+    func send(_ message: WatchMessage) async throws {}
+    func sendWithoutAcknowledgement(_ message: WatchMessage) {}
 
-    var receivedMessages: AsyncStream<[String: Any]> { stream }
+    func messages() -> AsyncStream<WatchMessage> { stream }
 
-    func deliver(_ message: [String: Any]) {
+    func deliver(_ message: WatchMessage) {
         continuation.yield(message)
     }
 }
