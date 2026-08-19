@@ -129,16 +129,25 @@ nonisolated final class FirebaseRealtimeService: FirebaseServiceProtocol, @unche
         Log.firebase.info("Firebase disconnected")
     }
 
-    // MARK: - Room-specific Helpers
+    // MARK: - Presence
 
-    func setOnDisconnectRemove(path: String) {
-        guard let database else { return }
-        database.reference().child(path).onDisconnectRemoveValue()
-        Log.firebase.debug("Set onDisconnect remove for \(path)")
+    func armDisconnectRemoval(path: String) async throws {
+        guard let database else {
+            Log.firebase.error("Firebase not configured — onDisconnect hook at \(path) impossible")
+            throw RoomError.firebaseUnavailable
+        }
+        // The completion-block form: the hook is armed on the server, and the server can
+        // refuse it (rules) or never answer. The fire-and-forget form hid both.
+        try await database.reference().child(path).onDisconnectRemoveValue()
+        Log.firebase.debug("Armed onDisconnect removal for \(path)")
     }
 
-    func cancelOnDisconnect(path: String) {
-        guard let database else { return }
-        database.reference().child(path).cancelDisconnectOperations()
+    func disarmDisconnectRemoval(path: String) async throws {
+        guard let database else {
+            Log.firebase.error("Firebase not configured — cannot disarm onDisconnect at \(path)")
+            throw RoomError.firebaseUnavailable
+        }
+        try await database.reference().child(path).cancelDisconnectOperations()
+        Log.firebase.debug("Disarmed onDisconnect removal for \(path)")
     }
 }

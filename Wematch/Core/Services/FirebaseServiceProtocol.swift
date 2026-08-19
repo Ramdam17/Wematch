@@ -43,5 +43,14 @@ protocol FirebaseServiceProtocol: Sendable {
     /// field-test case S8). Non-throwing — losing the connection is the value, not an error.
     nonisolated func observeConnection() -> AsyncStream<Bool>
     nonisolated func remove(path: String) async throws
+    /// Asks the server to delete `path` when this client's connection drops — presence.
+    /// On the protocol so that `FirebaseRoomRepository` stops downcasting to the concrete
+    /// service to reach it (audit finding family: "downcast instead of extending the
+    /// protocol"). Throwing: a hook that failed to arm is a participant who lingers on
+    /// every plot after a crash, and nobody used to be told.
+    nonisolated func armDisconnectRemoval(path: String) async throws
+    /// Withdraws the hook set by `armDisconnectRemoval(path:)`. Called after the node has
+    /// been removed by hand; an orphaned hook would only delete an absent node.
+    nonisolated func disarmDisconnectRemoval(path: String) async throws
     nonisolated func disconnect()
 }

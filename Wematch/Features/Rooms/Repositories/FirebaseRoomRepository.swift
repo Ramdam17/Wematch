@@ -44,13 +44,12 @@ nonisolated final class FirebaseRoomRepository: RoomRepository, Sendable {
     func joinRoom(roomID: String, participant: RoomParticipant) async throws {
         let path = userPath(roomID, participant.id)
 
-        // Write participant entry
         try await firebaseService.write(path: path, value: participant.firebaseDictionary)
 
-        // Set onDisconnect auto-cleanup (only for real Firebase)
-        if let realService = firebaseService as? FirebaseRealtimeService {
-            realService.setOnDisconnectRemove(path: path)
-        }
+        // Presence: the server reaps the node if this client vanishes. A join whose hook
+        // did not arm throws — the entry exists, but it would outlive a crash, and the
+        // user is better told than left a ghost on everyone's plot.
+        try await firebaseService.armDisconnectRemoval(path: path)
 
         Log.rooms.info("Joined room \(roomID) as \(participant.username)")
     }
@@ -58,12 +57,11 @@ nonisolated final class FirebaseRoomRepository: RoomRepository, Sendable {
     func leaveRoom(roomID: String, userID: String) async throws {
         let path = userPath(roomID, userID)
 
-        // Cancel onDisconnect before manual removal
-        if let realService = firebaseService as? FirebaseRealtimeService {
-            realService.cancelOnDisconnect(path: path)
-        }
-
+        // Remove first, disarm second: a hook that outlives a successful removal only
+        // deletes an absent node, whereas a failed disarm *before* the removal would have
+        // skipped it and left the participant on the plot until the connection dropped.
         try await firebaseService.remove(path: path)
+        try await firebaseService.disarmDisconnectRemoval(path: path)
         Log.rooms.info("Left room \(roomID)")
     }
 

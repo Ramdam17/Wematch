@@ -63,8 +63,27 @@ final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
     }
 
     func remove(path: String) async throws {
+        callLog.append("remove:\(path)")
         removedPaths.append(path)
         storage[path] = nil
+    }
+
+    var armedPaths: [String] = []
+    var disarmedPaths: [String] = []
+    /// Thrown by `armDisconnectRemoval` — the server refusing the hook.
+    var armError: Error?
+    /// Every path-touching call, in order — for tests about sequencing.
+    var callLog: [String] = []
+
+    func armDisconnectRemoval(path: String) async throws {
+        callLog.append("arm:\(path)")
+        if let armError { throw armError }
+        armedPaths.append(path)
+    }
+
+    func disarmDisconnectRemoval(path: String) async throws {
+        callLog.append("disarm:\(path)")
+        disarmedPaths.append(path)
     }
 
     func disconnect() {}

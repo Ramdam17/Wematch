@@ -59,6 +59,13 @@ nonisolated final class MockFirebaseService: FirebaseServiceProtocol, @unchecked
         notifyObservers(for: parentPath)
     }
 
+    /// The in-memory store has no connection to lose; there is nothing to arm.
+    func armDisconnectRemoval(path: String) async throws {
+        Log.firebase.debug("[Mock] onDisconnect removal requested for \(path) — no-op")
+    }
+
+    func disarmDisconnectRemoval(path: String) async throws {}
+
     func disconnect() {
         for (_, continuation) in continuations {
             continuation.finish()
