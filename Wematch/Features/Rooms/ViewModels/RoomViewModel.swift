@@ -183,7 +183,7 @@ final class RoomViewModel {
 
             startDashboardRecording(userID: userID)
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.rooms.error("Failed to join room: \(error.localizedDescription)")
             return
         }

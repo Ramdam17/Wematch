@@ -74,7 +74,7 @@ final class AccountDeletionService: Sendable {
         for group in adminGroups {
             // Notify all members that the group is being deleted
             for memberID in group.memberIDs {
-                try? await inboxMessageRepository.createMessage(
+                await inboxMessageRepository.notify(
                     recipientID: memberID,
                     type: .groupDeleted,
                     payload: ["groupName": group.name]

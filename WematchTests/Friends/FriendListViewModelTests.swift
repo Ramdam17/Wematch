@@ -91,7 +91,11 @@ final class MockFriendRepository: FriendRepository, @unchecked Sendable {
 final class MockInboxMessageRepository: InboxMessageRepository, @unchecked Sendable {
     var messages: [(recipientID: String, type: InboxMessageType, payload: [String: String])] = []
 
+    /// Thrown by `createMessage` — the recipient's inbox refusing the write.
+    var createError: Error?
+
     func createMessage(recipientID: String, type: InboxMessageType, payload: [String: String]) async throws {
+        if let createError { throw createError }
         messages.append((recipientID, type, payload))
     }
 }
@@ -182,6 +186,27 @@ final class FriendListViewModelTests: XCTestCase {
         XCTAssertTrue(mockRepo.acceptedRequestIDs.contains("req1"))
         XCTAssertEqual(mockInboxRepo.messages.count, 1)
         XCTAssertEqual(mockInboxRepo.messages.first?.type, .friendRequestAccepted)
+    }
+
+    /// The courtesy message is best-effort (plan 1.8): the acceptance itself has already
+    /// happened, and a lost notification must neither undo it nor read as a failure.
+    func testAcceptRequestSurvivesALostNotification() async {
+        await signInUser()
+        let request = FriendRequest(
+            id: "req1", senderID: "sender", receiverID: "test_user",
+            senderUsername: "sender_user", receiverUsername: "user_test_user",
+            status: .pending, createdAt: Date()
+        )
+        mockRepo.incomingRequests = [request]
+        mockInboxRepo.createError = NSError(domain: "firestore", code: 14)
+        await viewModel.fetchAll()
+
+        await viewModel.acceptRequest(request)
+
+        XCTAssertTrue(mockRepo.acceptedRequestIDs.contains("req1"))
+        XCTAssertTrue(viewModel.incomingRequests.isEmpty)
+        XCTAssertNil(viewModel.error, "a lost courtesy message is logged, not shown")
+        XCTAssertTrue(mockInboxRepo.messages.isEmpty)
     }
 
     func testDeclineRequestRemovesFromList() async {

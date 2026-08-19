@@ -59,7 +59,7 @@ final class GroupDetailViewModel {
             }
             memberProfiles = profiles
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to fetch group details: \(error.localizedDescription)")
         }
     }
@@ -75,7 +75,7 @@ final class GroupDetailViewModel {
             group.memberIDs.append(request.userID)
 
             // Notify the requester
-            try? await inboxRepository.createMessage(
+            await inboxRepository.notify(
                 recipientID: request.userID,
                 type: .groupRequestAccepted,
                 payload: ["groupName": group.name, "groupID": group.id]
@@ -88,7 +88,7 @@ final class GroupDetailViewModel {
 
             Log.groups.info("Accepted request from \(request.username) for group \(self.group.name)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to accept request: \(error.localizedDescription)")
         }
     }
@@ -99,7 +99,7 @@ final class GroupDetailViewModel {
             joinRequests.removeAll { $0.id == request.id }
 
             // Notify the requester
-            try? await inboxRepository.createMessage(
+            await inboxRepository.notify(
                 recipientID: request.userID,
                 type: .groupRequestDeclined,
                 payload: ["groupName": group.name]
@@ -107,7 +107,7 @@ final class GroupDetailViewModel {
 
             Log.groups.info("Declined request from \(request.username)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to decline request: \(error.localizedDescription)")
         }
     }
@@ -121,7 +121,7 @@ final class GroupDetailViewModel {
             memberProfiles.removeAll { $0.id == userID }
             Log.groups.info("Removed member \(userID) from group \(self.group.name)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to remove member: \(error.localizedDescription)")
         }
     }
@@ -134,7 +134,7 @@ final class GroupDetailViewModel {
             hasLeft = true
             Log.groups.info("Left group \(self.group.name)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to leave group: \(error.localizedDescription)")
         }
     }
@@ -143,7 +143,7 @@ final class GroupDetailViewModel {
         do {
             // Notify all members before deleting
             for memberID in group.memberIDs {
-                try? await inboxRepository.createMessage(
+                await inboxRepository.notify(
                     recipientID: memberID,
                     type: .groupDeleted,
                     payload: ["groupName": group.name]
@@ -154,7 +154,7 @@ final class GroupDetailViewModel {
             isDeleted = true
             Log.groups.info("Deleted group \(self.group.name)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to delete group: \(error.localizedDescription)")
         }
     }

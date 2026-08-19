@@ -76,7 +76,7 @@ final class FriendListViewModel {
                 }
             }
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to fetch friends data: \(error.localizedDescription)")
         }
     }
@@ -95,7 +95,7 @@ final class FriendListViewModel {
             }
 
             // Notify sender
-            try? await inboxRepository.createMessage(
+            await inboxRepository.notify(
                 recipientID: request.senderID,
                 type: .friendRequestAccepted,
                 payload: ["username": authManager.userProfile?.username ?? ""]
@@ -103,7 +103,7 @@ final class FriendListViewModel {
 
             Log.friends.info("Accepted friend request from \(request.senderUsername)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to accept request: \(error.localizedDescription)")
         }
     }
@@ -114,7 +114,7 @@ final class FriendListViewModel {
             incomingRequests.removeAll { $0.id == request.id }
 
             // Notify sender
-            try? await inboxRepository.createMessage(
+            await inboxRepository.notify(
                 recipientID: request.senderID,
                 type: .friendRequestDeclined,
                 payload: ["username": authManager.userProfile?.username ?? ""]
@@ -122,7 +122,7 @@ final class FriendListViewModel {
 
             Log.friends.info("Declined friend request from \(request.senderUsername)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to decline request: \(error.localizedDescription)")
         }
     }
@@ -133,7 +133,7 @@ final class FriendListViewModel {
             outgoingRequests.removeAll { $0.id == request.id }
             Log.friends.info("Canceled friend request to \(request.receiverUsername)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to cancel request: \(error.localizedDescription)")
         }
     }
@@ -151,7 +151,7 @@ final class FriendListViewModel {
             friends.removeAll { $0.id == friendshipID }
             Log.friends.info("Removed friendship \(friendshipID)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to remove friend: \(error.localizedDescription)")
         }
     }
@@ -190,7 +190,7 @@ final class FriendListViewModel {
 
             Log.friends.info("Started temp room \(roomID) with \(friendProfile.username)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to start room: \(error.localizedDescription)")
         }
     }

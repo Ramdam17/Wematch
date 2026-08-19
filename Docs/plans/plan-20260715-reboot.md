@@ -68,7 +68,7 @@ Nothing is distributed (even TestFlight) before 1.1–1.3 are done.
 | # | Step | Findings | Acceptance |
 |---|------|----------|-----------|
 | 1.7 | Error paths: `AsyncThrowingStream` + Firebase `withCancel` in `observe`; remove mock-fallback in release (fail loudly); log dropped CloudKit records; `InboxMessageType.unknown`; connection-state indicator surfaced to RoomView | D1, D2, D3 | Simulated permission-denied shows an error state in UI, not an empty room |
-| 1.8 | CloudKit robustness: `serverRecordChanged` retry on `Group.memberIDs` and friend acceptance; basic `CKError` taxonomy (retryable vs fatal) in one shared helper | D4 | Concurrent member-add test (2 devices) loses no member |
+| 1.8 | ~~CloudKit robustness~~ → Firestore robustness (re-scoped 2026-08-18, see change log): membership races retired by `arrayUnion`/`arrayRemove`, group-code uniqueness by transaction; `BackendError` retryable-vs-fatal taxonomy in one shared helper | D4 | Rules tests for `groupCodes` green on the emulator; `BackendErrorTests` pin the taxonomy; concurrent member-add on 2 devices belongs to the field session |
 | 1.9 | Fix E1 (temp-room ID parsing) properly: stop parsing IDs out of path keys — store member IDs in room metadata | E1 | 0.6's failing test now passes |
 | 1.10 | Concurrency: replace the 2 proven-unsafe `@unchecked Sendable` (WatchHeartRateManager, HealthKitHeartRateService) with actor/lock designs; justify or remove the remaining ones; typed `Codable` WatchMessage replacing `[String: Any]` (resurrect H2's dead code) | C3, H2 | Full Swift 6 strict concurrency build: zero warnings, zero `@unchecked` without a written justification comment |
 | 1.11 | `WematchShared` framework → local multiplatform Swift package (Bezier math, plot coordinates, Color+Hex, participant model, WatchMessage) consumed by both targets | H1 | Both targets build; duplicated files deleted (~500 lines removed) |
@@ -239,3 +239,30 @@ extra TestFlight build, and internal testers need no review. Notifications there
 after the session, with the 3c work they depend on. Entitlement consequence:
 `aps-environment`, removed the same day as dead surface, returns with 3d — with code behind
 it this time.
+
+**2026-08-18 — Step 1.8 re-scoped from CloudKit to Firestore, and closed.** The step was
+written against D4 — `CKError` taxonomy, `serverRecordChanged` retry on `Group.memberIDs`
+and friend acceptance — and the 2026-07-16 entry above removed CloudKit without saying what
+became of it (1.9 was declared void; 1.8 was left standing). What the audit was actually
+about, split in two:
+- **The read-modify-write races are gone by construction**, not by retry: membership uses
+  `FieldValue.arrayUnion`/`arrayRemove` in batches, friend acceptance is one batch — no
+  client reads a list to write it back. Recorded in decision 0001, which until now justified
+  Firestore only by sharing semantics. The one race that survived was group-code
+  generation (query-then-write, five draws): it is a Firestore transaction now, on a
+  `groupCodes/{code}` reservation document — the `usernames/{username}` pattern — with
+  rules and emulator tests. Decision Rémy: transaction rather than a documented heuristic.
+- **The error taxonomy is `BackendError`** (`Core/Firebase/`): Firestore and URL-loading
+  errors classified into transient (offline, unavailable, deadline, aborted, quota) and
+  fatal (rules refusal, not found, unknown), each with user-facing text; domain errors pass
+  through. Applied where ViewModels turn a caught error into UI state (30 sites). No
+  automatic retry, deliberately: Firestore's persistent cache serves reads and replays
+  writes offline, and that choice is now stated in `FirebaseManager.configure()` instead
+  of inherited. The RTDB keeps `RoomConnectionState`, a richer surface than an alert.
+- The tail of D3 in the same pass: the seven `try?` writes in ViewModels. Six courtesy
+  notifications go through `InboxMessageRepository.notify` (best-effort, but *logged*);
+  the inbox delete-after-action and the temp-room fetch propagate their errors.
+
+Not verified on hardware, like everything else; the emulator rules tests run in CI (no
+Java runtime on the development machine). Deploying `firestore.rules` is still a manual
+step (`firebase/README.md`).

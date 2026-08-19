@@ -108,6 +108,19 @@ test("groups: members may only touch memberIDs; admin may touch anything", async
   await assertSucceeds(updateDoc(doc(db("uidA"), "groups/g1"), { name: "PPSP lab" }));
 });
 
+test("groupCodes: a code is claimed by its admin, and cannot be overwritten or freed by another", async () => {
+  await assertSucceeds(setDoc(doc(db("uidA"), "groupCodes/ABC123"), { groupID: "g1", adminID: "uidA" }));
+  // A second claim on the same code is an update, which no rule allows.
+  await assertFails(setDoc(doc(db("uidB"), "groupCodes/ABC123"), { groupID: "g2", adminID: "uidB" }));
+  await assertFails(deleteDoc(doc(db("uidB"), "groupCodes/ABC123")));
+  await assertSucceeds(deleteDoc(doc(db("uidA"), "groupCodes/ABC123")));
+});
+
+test("groupCodes: cannot claim a code on someone else's behalf, nor anonymously", async () => {
+  await assertFails(setDoc(doc(db("uidB"), "groupCodes/XYZ789"), { groupID: "g3", adminID: "uidA" }));
+  await assertFails(setDoc(doc(anon(), "groupCodes/XYZ789"), { groupID: "g3", adminID: "uidA" }));
+});
+
 test("groups: non-members cannot update, only admin deletes", async () => {
   await seed((f) => setDoc(doc(f, "groups/g1"), group));
   await assertFails(updateDoc(doc(db("uidC"), "groups/g1"), { memberIDs: ["uidC"] }));

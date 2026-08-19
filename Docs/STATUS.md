@@ -5,18 +5,19 @@ before the branch is merged, while the answers are still true.
 
 **Last updated:** 2026-08-18 · **Branch:** `sprint/18-phase2-close` · **`main`:** `ef8d5bf`
 
-**Branch state:** 7 commits ahead of `main`, **not pushed, not merged**. The last two are
-plan 1.10 (`ea275f5`, concurrency + Swift 6 language mode) and plan 1.11 (`1e29918`, the
-`WematchCore` package). Working tree clean apart from `.claude/settings.json` and the
-untracked `.agents/`, `.codex/`, `AGENTS.md`, none of which belong to the reboot.
+**Branch state:** 10 commits ahead of `main`, **not pushed, not merged**. The last three
+(2026-08-18) are the relay rename (decision 0009), the `onDisconnect` hook on the protocol,
+and the plan 1.8 re-scope; before them plan 1.10 (`ea275f5`) and 1.11 (`1e29918`). Working
+tree clean apart from `.claude/settings.json` and the untracked `.agents/`, `.codex/`,
+`AGENTS.md`, none of which belong to the reboot.
 
 ## Health
 
 | | |
 |---|---|
-| Tests | 203 passing, 0 failing |
+| Tests | 216 passing, 0 failing |
 | Language mode | **Swift 6** — all 4 targets, Debug and Release, zero warnings (raised at 1.10) |
-| Lint | `swiftlint --strict` clean, 171 files (the package included) |
+| Lint | `swiftlint --strict` clean, 174 files (the package included) |
 | CI | green on PRs — build ×2 targets, tests, Firebase rules |
 | Distributed | nothing yet, not even TestFlight |
 | Verified on a real device | **nothing** |
@@ -29,7 +30,7 @@ which runs `SimulatedHeartRateService` and never exercises the Watch path.
 **Phase 0 — healthy environment: done.** Test target wired, first real tests, SwiftLint
 baseline, CI (`fcf47be`).
 
-**Phase 1 — secure and stabilize: 9 of 11 steps done.**
+**Phase 1 — secure and stabilize: 10 of 11 steps done — 1.8 was the last open one.**
 
 | Step | State |
 |---|---|
@@ -38,7 +39,7 @@ baseline, CI (`fcf47be`).
 | 1.3 Privacy manifest, Keychain ACL, private HR logs | done |
 | 1.4–1.6 Room teardown, listener unwind, scenePhase | done |
 | 1.7 Error paths; connection-state indicator (D1–D3) | **done, unverified on hardware** — see below |
-| 1.8 CloudKit robustness (D4) | **open** — re-scope: the CloudKit layer is gone |
+| 1.8 ~~CloudKit~~ Firestore robustness (D4) | **done, re-scoped 2026-08-18** — see below |
 | 1.9 Temp-room ID parsing (E1) | done early, in 1.2c |
 | 1.10 Concurrency, typed WatchMessage, Swift 6 language mode | **done, unverified on hardware** — see below |
 | 1.11 `WematchShared` → local Swift package | **done** — see below |
@@ -174,6 +175,28 @@ move changed no colour: it pins the slots the hash derives, and it passed unchan
 
 **Not verified:** the Watch app builds for both configurations and has not been run.
 
+**1.8, in detail.** The step named CloudKit APIs that no longer exist. What it was *for*
+splits in two, and both halves are done: the membership races D4 described are gone by
+construction on Firestore (`arrayUnion`/`arrayRemove` in batches — recorded in decision
+[0001](decisions/0001-firestore-for-the-social-graph.md), which had not said so), and the
+one race that survived — group-code generation, query-then-write — is a Firestore
+transaction on a `groupCodes/{code}` reservation document, with rules and emulator tests.
+The retryable-vs-fatal taxonomy the step asked for is `BackendError`
+(`Core/Firebase/BackendError.swift`), applied at the thirty places ViewModels turn a caught
+error into an alert: a rules refusal now reads as a refusal, not as a network hiccup, and
+"You're offline" is a sentence rather than an SDK string. No automatic retry, on purpose:
+Firestore's persistent cache serves reads and replays writes offline, and
+`FirebaseManager.configure()` now says so in code rather than inheriting it. The seven
+`try?` writes left in ViewModels (D3's tail) went with it — six courtesy notifications are
+best-effort but logged (`InboxMessageRepository.notify`), the inbox delete-after-action
+and the temp-room fetch propagate.
+
+**Not verified:** the transaction and the rules have run nowhere but CI's emulator (no
+Java runtime locally); no `BackendError` text has been seen on a screen, since producing
+one needs a backend that refuses. `firestore.rules` is deployed by hand — **the
+`groupCodes` rules must be deployed before the first group is created on a build carrying
+this change**, or `createGroup` fails with `denied`.
+
 **Phase 2 — robust method: 2.1–2.3 and 2.5 done, 2.4 written but not run.**
 The Figma library and the six screens are the source of truth and match the code; the
 design system is backported (`ef8d5bf`); the Definition of Done in `CLAUDE.md` is now
@@ -198,8 +221,8 @@ does not block the field session.
    the built bundle, and the dead entitlements are gone — `aps-environment`,
    `healthkit.background-delivery`, `icloud-container-identifiers`, `icloud-services`.
    `com.apple.developer.healthkit` was deliberately kept; see the row below.
-2. **1.8** is what is left of Phase 1, and it needs re-scoping before it needs doing: D4
-   was written against a CloudKit layer that 1.2 removed.
+2. **Deploy `firebase/firestore.rules`** (`npx firebase-tools deploy --only firestore:rules`)
+   — the `groupCodes` collection is new and rules-gated. Phase 1 has no open step left.
 
 ## Found in passing, not in the plan
 
@@ -210,8 +233,9 @@ a snapshot. An unwritten finding is one that gets re-discovered.
 | What | Where | Belongs to |
 |---|---|---|
 | `UIBackgroundModes` = `remote-notification` is declared with no push code behind it — a background mode without its functionality is a classic rejection motive (2.5.4). Deliberately left in place rather than removed: 3d decides it with code in front of it, since only *silent* push needs it | `Wematch/Info.plist` | 3d |
-| `HealthKitHeartRateService` no longer touches HealthKit — it is a WatchConnectivity relay wearing the wrong name. `WatchRelayHeartRateService` is what it should be called. Not cosmetic: it is the unfinished half of decision [0009](decisions/0009-the-iphone-asks-healthkit-for-nothing.md) | `Core/HealthKit/HealthKitHeartRateService.swift` | open — small |
-| Two `firebaseService as? FirebaseRealtimeService` downcasts, to set and cancel the `onDisconnect` hook. Same forbidden pattern the Watch wiring had, surviving in a different protocol: `setOnDisconnectRemove`/`cancelOnDisconnect` belong on `FirebaseServiceProtocol` | `FirebaseRoomRepository.swift` (`joinRoom`, `leaveRoom`) | open — small |
+| ~~`HealthKitHeartRateService` is a WatchConnectivity relay wearing the wrong name~~ — renamed `WatchRelayHeartRateService`, moved to `Core/WatchConnectivity/` (2026-08-18); decision [0009](decisions/0009-the-iphone-asks-healthkit-for-nothing.md) is finished | `Core/WatchConnectivity/WatchRelayHeartRateService.swift` | done |
+| ~~Two `firebaseService as? FirebaseRealtimeService` downcasts for the `onDisconnect` hook~~ — `armDisconnectRemoval`/`disarmDisconnectRemoval` are on `FirebaseServiceProtocol` (2026-08-18), and they *throw*: a hook the server refuses used to fail silently, leaving a ghost participant after a crash. `joinRoom` fails if the hook does not arm; `leaveRoom` removes, then disarms. Three tests that could not exist before | `FirebaseRoomRepository.swift` | done |
+| `try? await profileRepository.fetchProfile` ×3 (Groups, Friends): reads degrading to a missing display name, unlogged. Not writes, so left out of 1.8's `try?` sweep | `GroupDetailViewModel.swift:85`, `FriendListViewModel.swift:73,93` | open — small |
 
 ## Blocked on Rémy
 

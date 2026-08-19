@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseCore
 import FirebaseDatabase
+import FirebaseFirestore
 import Synchronization
 import OSLog
 
@@ -33,6 +34,15 @@ nonisolated final class FirebaseManager: Sendable {
 
         FirebaseApp.configure()
         storedDatabase.withLock { $0 = Database.database() }
+
+        // Firestore: stated rather than inherited (plan 1.8). The persistent cache is the
+        // SDK default, kept on purpose — offline, reads are served from it and writes are
+        // queued and replayed, which is why the app has no retry helper of its own; the
+        // user is told to try again through `BackendError` when the server refuses *now*.
+        // Must be set before the first `Firestore.firestore()` use, hence here.
+        let firestoreSettings = FirestoreSettings()
+        firestoreSettings.cacheSettings = PersistentCacheSettings()
+        Firestore.firestore().settings = firestoreSettings
         Log.firebase.info("Firebase configured successfully")
     }
 }

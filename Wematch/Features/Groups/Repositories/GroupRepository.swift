@@ -9,6 +9,9 @@ enum GroupError: LocalizedError {
     case adminCannotLeave
     case notAdmin
     case emptyName
+    /// Five draws in a row landed on taken codes. Practically unreachable (see
+    /// `FirestoreGroupRepository.codeAttempts`); named rather than swallowed.
+    case codeSpaceExhausted
 
     var errorDescription: String? {
         switch self {
@@ -20,6 +23,7 @@ enum GroupError: LocalizedError {
         case .adminCannotLeave: "As admin, you must delete the group instead of leaving."
         case .notAdmin: "Only the group admin can perform this action."
         case .emptyName: "Group name cannot be empty."
+        case .codeSpaceExhausted: "Couldn't find a free group code. Please try again."
         }
     }
 }

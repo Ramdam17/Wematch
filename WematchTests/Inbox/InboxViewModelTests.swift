@@ -31,7 +31,11 @@ final class MockInboxRepository: InboxRepository, @unchecked Sendable {
         }
     }
 
+    /// Thrown by `deleteMessage`.
+    var deleteError: Error?
+
     func deleteMessage(messageID: String) async throws {
+        if let deleteError { throw deleteError }
         deletedMessageIDs.append(messageID)
         messages.removeAll { $0.id == messageID }
     }
@@ -209,6 +213,25 @@ final class InboxViewModelTests: XCTestCase {
         XCTAssertEqual(mockGroupRepo.acceptedRequests.first?.requestID, "req1")
         XCTAssertEqual(mockGroupRepo.acceptedRequests.first?.groupID, "g1")
         XCTAssertTrue(viewModel.messages.isEmpty, "Message should be deleted after action")
+    }
+
+    /// The delete after an action used to be `try?`: a message that could not be removed
+    /// came back on the next fetch, with nothing said (audit D3, plan 1.8).
+    func testAFailedDeleteAfterAnActionIsSurfaced() async {
+        await signInUser()
+        let message = InboxMessage(
+            id: "m1", recipientID: "test_user", type: .groupJoinRequest,
+            payload: ["requestID": "req1", "groupID": "g1", "userID": "joiner", "username": "bob"],
+            isRead: false, createdAt: Date()
+        )
+        mockInboxRepo.messages = [message]
+        mockInboxRepo.deleteError = NSError(domain: "firestore", code: 14)
+        await viewModel.fetchMessages()
+
+        await viewModel.performAction(.accept, on: message)
+
+        XCTAssertEqual(mockGroupRepo.acceptedRequests.count, 1, "the action itself went through")
+        XCTAssertNotNil(viewModel.error, "and the failed cleanup is not swallowed")
     }
 
     func testDeclineGroupJoinRequestCallsGroupRepo() async {

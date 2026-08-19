@@ -26,8 +26,7 @@ final class AuthenticationManager {
     var currentUserID: String? { firebaseUID }
 
     /// Apple user ID from Sign in with Apple — kept ONLY as the local session
-    /// marker (Keychain) and for legacy CloudKit records until 1.2d completes.
-    /// Never use it to key Firebase paths.
+    /// marker (Keychain). Never use it to key Firebase paths; identity is `firebaseUID`.
     var appleUserID: String? { storedUserID }
 
     private(set) var firebaseUID: String?
@@ -126,7 +125,7 @@ final class AuthenticationManager {
         } catch let authError as AuthenticationError where authError == .canceled {
             Log.auth.info("Sign in canceled")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.auth.error("Sign in failed: \(error.localizedDescription)")
         }
     }
@@ -167,7 +166,7 @@ final class AuthenticationManager {
             authState = .signedIn
             Log.auth.info("Profile created with username '\(self.generatedUsername)'")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.auth.error("Failed to confirm username: \(error.localizedDescription)")
         }
     }

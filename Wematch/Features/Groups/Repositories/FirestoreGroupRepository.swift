@@ -47,36 +47,88 @@ struct FirestoreGroupRepository: GroupRepository {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { throw GroupError.emptyName }
 
-        // Retry code generation on (rare) collisions.
-        var code = GroupCodeGenerator.generate()
-        for _ in 0..<5 {
-            let clash = try await database.collection("groups")
-                .whereField("code", isEqualTo: code).limit(to: 1).getDocuments()
-            if clash.documents.isEmpty { break }
-            code = GroupCodeGenerator.generate()
-        }
-
-        let ref = database.collection("groups").document()
+        // Code uniqueness is a reservation document, `groupCodes/{code}`, claimed in the
+        // same transaction that creates the group — the pattern `usernames/{username}`
+        // already uses. The previous shape was query-then-write: two users drawing the
+        // same code between the check and the write both got it (plan 1.8, audit D4).
+        // A transaction cannot run a query, only read documents by path, which is why the
+        // uniqueness lives in a document keyed by the code and not in a `whereField`.
+        // Reads must all precede writes inside the block, and the block may be re-run.
+        let groupID = database.collection("groups").document().documentID
         let createdAt = Date()
-        try await ref.setData([
-            "name": trimmedName,
-            "code": code,
-            "adminID": adminID,
-            "memberIDs": [String](),
-            "createdAt": Timestamp(date: createdAt)
-        ])
-        Log.groups.info("Created group \(ref.documentID)")
-        return Group(id: ref.documentID, name: trimmedName, code: code,
+        // The block captures only `Sendable` values (strings, a date) and re-obtains the
+        // Firestore handle inside: `Firestore`, `CollectionReference` and
+        // `DocumentReference` are not `Sendable`, and the block runs on the SDK's queue.
+        // The SDK's own `async` overload of `runTransaction` is written in Swift and takes
+        // a `sending` block; from a main-actor repository that means sending `Firestore`
+        // — which is not `Sendable` — and the compiler refuses. The Objective-C form with a
+        // completion block is `@preconcurrency` by import, so it is wrapped by hand here.
+        let result: String? = try await withCheckedThrowingContinuation { continuation in
+            database.runTransaction({ @Sendable transaction, errorPointer in
+                let firestore = Firestore.firestore()
+                let ref = firestore.collection("groups").document(groupID)
+                let codes = firestore.collection("groupCodes")
+                var chosen: String?
+                for _ in 0..<Self.codeAttempts {
+                    let candidate = GroupCodeGenerator.generate()
+                    do {
+                        let reservation = try transaction.getDocument(codes.document(candidate))
+                        if !reservation.exists { chosen = candidate; break }
+                    } catch {
+                        errorPointer?.pointee = error as NSError
+                        return nil
+                    }
+                }
+                guard let code = chosen else {
+                    errorPointer?.pointee = GroupError.codeSpaceExhausted as NSError
+                    return nil
+                }
+                transaction.setData([
+                    "name": trimmedName,
+                    "code": code,
+                    "adminID": adminID,
+                    "memberIDs": [String](),
+                    "createdAt": Timestamp(date: createdAt)
+                ], forDocument: ref)
+                transaction.setData(["groupID": groupID, "adminID": adminID],
+                                    forDocument: codes.document(code))
+                return code
+            }, completion: { value, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    // `Any?` is not `Sendable`; the `String` the block returns is.
+                    continuation.resume(returning: value as? String)
+                }
+            })
+        }
+        guard let code = result else {
+            // The block returns the code or sets the error; anything else is a bug here.
+            throw GroupError.codeSpaceExhausted
+        }
+        Log.groups.info("Created group \(groupID)")
+        return Group(id: groupID, name: trimmedName, code: code,
                      adminID: adminID, memberIDs: [], createdAt: createdAt)
     }
+
+    /// Draws per transaction. 32⁶ ≈ 1.07 × 10⁹ codes: with even ten thousand groups
+    /// the chance one draw collides is ~10⁻⁵, and of five in a row ~10⁻²⁵ — the guard is
+    /// against a bug (a generator returning constants), not against arithmetic.
+    private nonisolated static let codeAttempts = 5
 
     func deleteGroup(groupID: String) async throws {
         guard let database else { throw FirebaseAuthError.notConfigured }
         let requests = try await database.collection("joinRequests")
             .whereField("groupID", isEqualTo: groupID).getDocuments()
 
+        let groupRef = database.collection("groups").document(groupID)
         let batch = database.batch()
-        batch.deleteDocument(database.collection("groups").document(groupID))
+        batch.deleteDocument(groupRef)
+        // Free the code with the group, or the reservation would outlive it and the code
+        // could never be drawn again.
+        if let code = try await groupRef.getDocument().get("code") as? String {
+            batch.deleteDocument(database.collection("groupCodes").document(code))
+        }
         for doc in requests.documents {
             batch.deleteDocument(doc.reference)
         }

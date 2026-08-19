@@ -43,7 +43,13 @@ Rules: `firebase/firestore.rules`. Key property CloudKit could not express: **re
 semantics** — anyone signed-in can deliver into `inbox/{uid}/messages`, only `{uid}` can
 read/update/delete. v1 trade-offs (documented inline): `users/` and `groups/` are readable
 app-wide (username search + join-by-code); membership updates are coarse-grained
-(member may touch `memberIDs` only).
+(member may touch `memberIDs` only). Uniqueness of usernames and of group codes is a
+reservation document (`usernames/{username}`, `groupCodes/{code}`) written in the same
+batch or transaction as the thing it reserves — a claim can only *create*, so two writers
+racing for one value cannot both win (plan 1.8).
+
+**Deploying rules is a manual step**: `firebase.rules` changes are tested by CI on the
+emulator but reach the project only through the deploy line below.
 
 ```bash
 npx firebase-tools deploy --only firestore:rules

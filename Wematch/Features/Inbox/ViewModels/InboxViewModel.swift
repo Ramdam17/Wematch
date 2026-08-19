@@ -47,7 +47,7 @@ final class InboxViewModel {
             messages = try await inboxRepository.fetchMessages(userID: userID)
             Log.inbox.debug("Loaded \(self.messages.count) inbox messages")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.inbox.error("Failed to fetch inbox: \(error.localizedDescription)")
         }
     }
@@ -67,11 +67,13 @@ final class InboxViewModel {
                 break
             }
 
-            // Remove message from list after action
-            try? await inboxRepository.deleteMessage(messageID: message.id)
+            // The action succeeded; the message is spent. A delete that fails is reported
+            // like any other error — the alternative was a message that reappears on the
+            // next fetch with nothing to say why (audit D3).
+            try await inboxRepository.deleteMessage(messageID: message.id)
             messages.removeAll { $0.id == message.id }
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.inbox.error("Failed to perform action on message \(message.id): \(error.localizedDescription)")
         }
     }
@@ -82,7 +84,7 @@ final class InboxViewModel {
             messages.removeAll { $0.id == message.id }
             Log.inbox.info("Deleted message \(message.id)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.inbox.error("Failed to delete message: \(error.localizedDescription)")
         }
     }
@@ -97,7 +99,7 @@ final class InboxViewModel {
             }
             Log.inbox.info("Marked all messages as read")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.inbox.error("Failed to mark all as read: \(error.localizedDescription)")
         }
     }
