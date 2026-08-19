@@ -137,7 +137,7 @@ final class RoomViewModel {
         #if targetEnvironment(simulator)
         self.healthKitService = healthKitService ?? SimulatedHeartRateService()
         #else
-        self.healthKitService = healthKitService ?? HealthKitHeartRateService()
+        self.healthKitService = healthKitService ?? WatchRelayHeartRateService()
         #endif
 
         // Claim a palette slot from the user ID. Stable across launches and devices,

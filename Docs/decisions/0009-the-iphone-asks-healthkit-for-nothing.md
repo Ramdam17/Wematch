@@ -65,6 +65,9 @@ says so in its first minute.
 `HealthKitHeartRateService` no longer touches HealthKit — it is a WatchConnectivity relay
 wearing the wrong name. `WatchRelayHeartRateService` is what it should be called; the rename
 was left out of this change and is not cosmetic tidying, it is finishing this decision.
+*(Done 2026-08-18: `Core/WatchConnectivity/WatchRelayHeartRateService.swift`, next to the
+link it relays. Only the class and its log category changed; `HealthKitServiceProtocol`
+keeps its name — the Watch side of the protocol is still a HealthKit client.)*
 
 The dead `RoomError.healthKitDenied` is gone, so nothing in the room now claims a heart-rate
 permission problem the phone could never have detected. The one thing that *can* detect it

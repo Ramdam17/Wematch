@@ -9,14 +9,14 @@ import OSLog
 /// hold an `HKHealthStore` and request a read it never performed — removed with the
 /// iPhone's HealthKit entitlement.
 ///
-/// **The name is now wrong**; `WatchRelayHeartRateService` is what it should be called.
-/// Recorded in `Docs/STATUS.md` and left for its own change, since renaming it here would
-/// bury a file move inside a concurrency fix.
+/// Named for what it is since decision 0009 was finished (it was `HealthKitHeartRateService`
+/// while it still held an `HKHealthStore`); it lives next to `PhoneSessionManager`, the
+/// link it relays. `SimulatedHeartRateService` is the simulator's stand-in for it.
 ///
 /// The continuation sits behind a mutex rather than under `@unchecked Sendable`: samples
 /// enter from whoever is draining the Watch's message stream and the stream is torn down
 /// from the room's exit path, and those are not guaranteed to be the same context.
-final class HealthKitHeartRateService: HealthKitServiceProtocol, Sendable {
+final class WatchRelayHeartRateService: HealthKitServiceProtocol, Sendable {
 
     private let streamContinuation = Mutex<AsyncStream<Double>.Continuation?>(nil)
 
@@ -36,6 +36,6 @@ final class HealthKitHeartRateService: HealthKitServiceProtocol, Sendable {
             continuation?.finish()
             continuation = nil
         }
-        Log.healthKit.info("Heart rate streaming stopped")
+        Log.watchConnectivity.info("Heart rate relay stopped")
     }
 }
