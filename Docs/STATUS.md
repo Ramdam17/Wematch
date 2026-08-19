@@ -61,9 +61,20 @@ last value sits on the plot indefinitely and nothing says so (field case S9). Th
 raised by failed *operations*, and a frozen feed produces none.
 
 **Not verified:** no banner state has been seen anywhere but the Xcode canvas
-(`RoomView.swift`, `#Preview("Connection banners")`) — the room needs a signed-in session and
-a broken link to show one. `watchUnreachable` has no automated test at all: the Watch
-commands are compiled out of simulator builds. Dynamic Type at AX5 is unchecked.
+(`RoomView.swift`, the two `Connection banners` previews) — the room needs a signed-in
+session and a broken link to show one. `watchUnreachable` has no automated test at all: the
+Watch commands are compiled out of simulator builds.
+
+**At accessibility text sizes the banner leaves the overlay.** Floating it would cover the
+top of the plot — the high-BPM band, where hearts synchronise most — so above
+`dynamicTypeSize.isAccessibilitySize` it joins the layout flow and pushes the plot down
+instead. The plot shrinks; the sentence stays whole. Truncating an error message that
+carries the fix was never an option.
+
+**The iPhone no longer asks HealthKit for anything** — entitlement, both usage strings, the
+authorization call and `RoomError.healthKitDenied` are gone; the Watch is untouched. See
+decision [0009](decisions/0009-the-iphone-asks-healthkit-for-nothing.md), whose one
+unverified claim is checked by field-test case S1.
 
 **Phase 2 — robust method: 2.1–2.3 and 2.5 done, 2.4 written but not run.**
 The Figma library and the six screens are the source of truth and match the code; the
@@ -111,12 +122,10 @@ freezes the read on the main actor permanently. **Fix the isolation, not the war
 | What | Where | Belongs to |
 |---|---|---|
 | `UIBackgroundModes` = `remote-notification` is declared with no push code behind it — a background mode without its functionality is a classic rejection motive (2.5.4). Deliberately left in place rather than removed: 3d decides it with code in front of it, since only *silent* push needs it | `Wematch/Info.plist` | 3d |
-| The iPhone asks for HealthKit authorization (`RoomViewModel.swift:164`) for a read it never performs — on the phone, HR arrives over WatchConnectivity (`HealthKitHeartRateService.swift:19`). **A refusal does not block anything**: `requestAuthorization` returns normally on denial and throws only on system errors (WWDC 2020-10664), so `RoomError.healthKitDenied` is named for a case it never sees. It *does* fire if the entitlement is removed — which is why the entitlement and the call go together, or neither does | `Wematch/Wematch.entitlements`, `RoomViewModel.swift:164` | open — needs a decision |
-| The iPhone's `NSHealthUpdateUsageDescription` describes *reading* ("fetch heartrate from the Apple Watch"), but the phone never writes to HealthKit — reading is covered by `NSHealthShareUsageDescription`, which is present in `Wematch/Info.plist`. Harmless until a write is requested, then it shows the wrong sentence to the user | `Wematch.xcodeproj/project.pbxproj` | 3b (F6) |
+| `HealthKitHeartRateService` no longer touches HealthKit — it is a WatchConnectivity relay wearing the wrong name. `WatchRelayHeartRateService` is what it should be called. Not cosmetic: it is the unfinished half of decision [0009](decisions/0009-the-iphone-asks-healthkit-for-nothing.md) | `Core/HealthKit/HealthKitHeartRateService.swift` | open — small |
+| The Watch HR wiring downcasts the injected protocol to the concrete service and reaches through `PhoneSessionManager.shared` — both forbidden by `CLAUDE.md`, and the root-cause pattern the audit named | `RoomViewModel.swift` (`enterRoom`, real-device branch) | 1.10 |
 
 ## Blocked on Rémy
 
 - Anything on real hardware: the device pass, the field session, TestFlight upload.
 - Xcode target surgery (1.11), done in the GUI.
-- The HealthKit-on-the-iPhone decision in the table above (the entitlement and the
-  authorization call go together, or neither does).

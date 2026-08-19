@@ -4,8 +4,6 @@
 <dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Wematch reads your heart rate to share it in real time with your group.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

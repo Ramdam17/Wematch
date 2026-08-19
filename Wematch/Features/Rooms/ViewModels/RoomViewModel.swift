@@ -158,18 +158,12 @@ final class RoomViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        // 1. Request HealthKit authorization if needed
-        if !healthKitService.isAuthorized {
-            do {
-                try await healthKitService.requestAuthorization()
-            } catch {
-                self.error = RoomError.healthKitDenied
-                Log.rooms.error("HealthKit authorization denied: \(error.localizedDescription)")
-                return
-            }
-        }
+        // The phone asks HealthKit for nothing: heart rate arrives over
+        // WatchConnectivity, and the Watch owns its own authorization. It used to
+        // request a read it never performed, and present `healthKitDenied` for a
+        // refusal HealthKit never reports.
 
-        // 2. Join room in Firebase
+        // 1. Join room in Firebase
         let participant = RoomParticipant(
             id: userID,
             username: currentUsername,
@@ -187,16 +181,16 @@ final class RoomViewModel {
             return
         }
 
-        // 3. Start observing other participants, and the link they arrive over
+        // 2. Start observing other participants, and the link they arrive over
         startObservingParticipants()
         startObservingConnection()
 
         startObservingWatchMessages()
 
-        // 4. Start streaming heart rate
+        // 3. Start streaming heart rate
         startHeartRateStreaming()
 
-        // 5. On real device: wire Watch HR → HealthKit stream, then tell Watch to start
+        // 4. On real device: wire Watch HR → HealthKit stream, then tell Watch to start
         #if !targetEnvironment(simulator)
         if let hkService = healthKitService as? HealthKitHeartRateService {
             PhoneSessionManager.shared.heartRateHandler = { [weak hkService] hr in
@@ -206,15 +200,15 @@ final class RoomViewModel {
         sendWatchCommand("enterRoom", roomID: roomID)
         #endif
 
-        // 6. Start simulated room participants (simulator only)
+        // 5. Start simulated room participants (simulator only)
         #if targetEnvironment(simulator)
         startSimulatedParticipants()
         #endif
 
-        // 7. Start star drift timer
+        // 6. Start star drift timer
         startStarTimer()
 
-        // 8. Give the Watch something to show if the user swipes to the dashboard.
+        // 7. Give the Watch something to show if the user swipes to the dashboard.
         Task { await pushDashboardSnapshotToWatch() }
 
         Log.rooms.info("Entered room \(self.roomID)")

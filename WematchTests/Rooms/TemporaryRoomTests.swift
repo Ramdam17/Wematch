@@ -70,7 +70,6 @@ final class SpyTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Send
 // (shared with RoomLifecycleTests).
 
 final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {
-    var isAuthorized = true
 
     /// Beats to deliver. The first is emitted as soon as the stream is consumed; the
     /// rest wait for `emitNext()`, so a test can script "this write fails, the next
@@ -79,8 +78,6 @@ final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable 
 
     private var continuation: AsyncStream<Double>.Continuation?
     private var pending: [Double] = []
-
-    func requestAuthorization() async throws {}
 
     func startHeartRateStreaming() -> AsyncStream<Double> {
         AsyncStream { continuation in

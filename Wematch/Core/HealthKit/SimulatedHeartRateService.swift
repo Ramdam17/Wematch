@@ -4,13 +4,7 @@ import OSLog
 /// Generates realistic simulated heart rate data at ~1 Hz for development on Simulator.
 final class SimulatedHeartRateService: HealthKitServiceProtocol, @unchecked Sendable {
 
-    private(set) var isAuthorized = true
     private var streamTask: Task<Void, Never>?
-
-    func requestAuthorization() async throws {
-        // Always authorized in simulation
-        Log.healthKit.info("[Simulated] HealthKit authorization granted (simulated)")
-    }
 
     func startHeartRateStreaming() -> AsyncStream<Double> {
         AsyncStream { continuation in

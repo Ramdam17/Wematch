@@ -39,7 +39,12 @@ Repeat on B.
 
 1. A opens a room. B joins the same room.
 
-**Expect** — first entry prompts for HealthKit on the phone *and* on the Watch. Grant both.
+**Expect** — first entry prompts for HealthKit **on the Watch only**. The phone must ask for
+nothing: its HealthKit entitlement and usage strings were removed on 2026-08-18 because it
+never queried HealthKit (decision [0009](../decisions/0009-the-iphone-asks-healthkit-for-nothing.md)).
+**A phone prompt here means the removal was incomplete. No Watch prompt, or a Watch prompt
+that grants nothing, means the removal broke the Watch — that is the one way this decision
+can be wrong, and it makes the rest of the session meaningless. Stop and say so.**
 **Expect** — the Watch leaves Idle for the waiting screen, then the plot, and a workout
 starts (the workout indicator appears).
 **Expect** — Firebase console: `rooms/{roomID}/users/` has exactly two children, keyed on the
