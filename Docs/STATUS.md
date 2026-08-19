@@ -5,6 +5,11 @@ before the branch is merged, while the answers are still true.
 
 **Last updated:** 2026-08-18 · **Branch:** `sprint/18-phase2-close` · **`main`:** `ef8d5bf`
 
+**Branch state:** 7 commits ahead of `main`, **not pushed, not merged**. The last two are
+plan 1.10 (`ea275f5`, concurrency + Swift 6 language mode) and plan 1.11 (`1e29918`, the
+`WematchCore` package). Working tree clean apart from `.claude/settings.json` and the
+untracked `.agents/`, `.codex/`, `AGENTS.md`, none of which belong to the reboot.
+
 ## Health
 
 | | |
