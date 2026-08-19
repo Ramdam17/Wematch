@@ -1,7 +1,10 @@
 import Foundation
 
 /// How long the user was in sync with one particular person.
-struct SyncPartnerTotal: Equatable, Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct SyncPartnerTotal: Equatable, Sendable {
     let userID: String
     let duration: TimeInterval
 }
@@ -16,7 +19,10 @@ struct SyncPartnerTotal: Equatable, Sendable {
 /// - Power the Dashboard UI with summary cards
 /// - Provide at-a-glance stats (total sessions, total sync time, etc.)
 /// - Support time-filtered views (today, this week, all-time)
-struct DashboardMetrics: Sendable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct DashboardMetrics: Sendable {
     /// Total number of room sessions the user has participated in.
     let totalSessions: Int
 

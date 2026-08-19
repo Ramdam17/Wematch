@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import WematchCore
 
 @Observable
 @MainActor
@@ -61,7 +62,9 @@ final class DashboardViewModel {
         let safeUserID = userID.firebaseSafe()
 
         do {
-            // Off the main actor: the file carries every session the user has ever played.
+            // Off the main actor, and now actually so — see the note on
+            // `DashboardRecordStoring`. The file carries every session the user has ever
+            // played (plan 1.10).
             let records = try await Task.detached { try store.load() }.value
 
             guard !records.isEmpty else {

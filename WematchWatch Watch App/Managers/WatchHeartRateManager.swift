@@ -1,19 +1,42 @@
 import HealthKit
+import Synchronization
 import os
+import WematchCore
 
-final class WatchHeartRateManager: NSObject, @unchecked Sendable {
+/// Owns the workout session that produces heart rate, and hands it out as a stream.
+///
+/// **Isolation** (plan 1.10, C3). The type used to be `@unchecked Sendable` with five
+/// mutable properties written from three places: the main actor, HealthKit's delegate
+/// queue, and an `onTermination` callback on whatever thread finished the stream. The
+/// split now follows what each piece of state is actually for:
+///
+/// - the workout session, the builder and the two flags are `@MainActor`. They are read by
+///   `WatchRoomViewModel` inside a `body`, and nothing needs them from the delegate queue —
+///   `didCollectDataOf` is handed the builder it should ask;
+/// - the stream continuation sits behind a mutex, because heart-rate samples must reach it
+///   from the delegate queue **synchronously and in order**. Hopping them onto the main
+///   actor with a `Task` would put the plot's own signal at the mercy of task ordering.
+@MainActor
+final class WatchHeartRateManager: NSObject {
 
     private let healthStore = HKHealthStore()
-    private let logger = Logger(
+    /// `nonisolated`: the HealthKit delegate queue logs through it too.
+    private nonisolated let logger = Logger(
         subsystem: "com.remyramadour.Wematch.watchkitapp",
         category: "healthkit"
     )
 
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
-    private var streamContinuation: AsyncStream<Double>.Continuation?
 
-    private(set) var isAuthorized = false
+    /// Reachable from the HealthKit delegate queue; see the note above.
+    private nonisolated let streamContinuation = Mutex<AsyncStream<Double>.Continuation?>(nil)
+
+    /// Whether authorization has been *asked for* — not whether it was granted.
+    /// `requestAuthorization` returns normally on a denial, so granted-ness is not
+    /// knowable here; see `WatchHeartRateStatus`. Naming this `isAuthorized` is
+    /// what made the denial path silent.
+    private(set) var hasRequestedAuthorization = false
     private(set) var isStreaming = false
 
     // MARK: - Authorization
@@ -22,48 +45,58 @@ final class WatchHeartRateManager: NSObject, @unchecked Sendable {
         let heartRateType = HKQuantityType(.heartRate)
         let workoutType = HKObjectType.workoutType()
 
+        // Throws on system errors only (missing usage key, HealthKit unavailable).
+        // A user tapping "Don't Allow" returns normally — WWDC 2020-10664.
         try await healthStore.requestAuthorization(
             toShare: [workoutType],
             read: [heartRateType]
         )
-        isAuthorized = true
-        logger.info("HealthKit authorization granted")
+        hasRequestedAuthorization = true
+        logger.info("HealthKit authorization requested (grant status unknowable)")
     }
 
     // MARK: - Workout Session
 
     func startStreaming() -> AsyncStream<Double> {
-        AsyncStream { continuation in
-            self.streamContinuation = continuation
+        let (stream, continuation) = AsyncStream<Double>.makeStream()
+        streamContinuation.withLock { $0 = continuation }
 
-            continuation.onTermination = { @Sendable _ in
-                Task { @MainActor [weak self] in
-                    self?.stopStreaming()
-                }
-            }
-
-            Task {
-                do {
-                    try await self.startWorkoutSession()
-                } catch {
-                    self.logger.error("Failed to start workout session: \(error.localizedDescription)")
-                    continuation.finish()
-                }
+        continuation.onTermination = { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.stopStreaming()
             }
         }
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await startWorkoutSession()
+            } catch {
+                logger.error("Failed to start workout session: \(error.localizedDescription)")
+                continuation.finish()
+            }
+        }
+
+        return stream
     }
 
     func stopStreaming() {
         guard isStreaming else { return }
 
         session?.end()
-        builder?.endCollection(withEnd: Date()) { [weak self] _, error in
-            if let error {
-                self?.logger.error("Failed to end builder collection: \(error.localizedDescription)")
-            }
-            self?.builder?.finishWorkout { _, error in
+
+        // Both completions land on an arbitrary queue and only log, so they capture the
+        // builder they need rather than reading it back off the main actor after this
+        // method has already cleared it.
+        if let builder {
+            builder.endCollection(withEnd: Date()) { [logger] _, error in
                 if let error {
-                    self?.logger.error("Failed to finish workout: \(error.localizedDescription)")
+                    logger.error("Failed to end builder collection: \(error.localizedDescription)")
+                }
+                builder.finishWorkout { [logger] _, error in
+                    if let error {
+                        logger.error("Failed to finish workout: \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -71,8 +104,10 @@ final class WatchHeartRateManager: NSObject, @unchecked Sendable {
         session = nil
         builder = nil
         isStreaming = false
-        streamContinuation?.finish()
-        streamContinuation = nil
+        streamContinuation.withLock { continuation in
+            continuation?.finish()
+            continuation = nil
+        }
         logger.info("Workout session stopped")
     }
 
@@ -109,25 +144,32 @@ final class WatchHeartRateManager: NSObject, @unchecked Sendable {
 
 extension WatchHeartRateManager: HKWorkoutSessionDelegate {
 
-    func workoutSession(
+    nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession,
         didChangeTo toState: HKWorkoutSessionState,
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {
-        logger.info("Workout state: \(String(describing: fromState)) → \(String(describing: toState))")
+        let transition = "\(String(describing: fromState)) → \(String(describing: toState))"
+        let ended = toState == .ended
 
-        if toState == .ended {
-            isStreaming = false
+        Task { @MainActor [weak self] in
+            self?.logger.info("Workout state: \(transition, privacy: .public)")
+            if ended {
+                self?.isStreaming = false
+            }
         }
     }
 
-    func workoutSession(
+    nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession,
         didFailWithError error: Error
     ) {
-        logger.error("Workout session failed: \(error.localizedDescription)")
-        stopStreaming()
+        let description = error.localizedDescription
+        Task { @MainActor [weak self] in
+            self?.logger.error("Workout session failed: \(description)")
+            self?.stopStreaming()
+        }
     }
 }
 
@@ -135,11 +177,14 @@ extension WatchHeartRateManager: HKWorkoutSessionDelegate {
 
 extension WatchHeartRateManager: HKLiveWorkoutBuilderDelegate {
 
-    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
         // Not used — we only care about HR samples
     }
 
-    func workoutBuilder(
+    /// Stays on the delegate queue on purpose: the sample is yielded synchronously, in
+    /// the order HealthKit produced it. Everything it needs comes from the builder it is
+    /// handed, so it touches no main-actor state.
+    nonisolated func workoutBuilder(
         _ workoutBuilder: HKLiveWorkoutBuilder,
         didCollectDataOf collectedTypes: Set<HKSampleType>
     ) {
@@ -156,6 +201,6 @@ extension WatchHeartRateManager: HKLiveWorkoutBuilderDelegate {
 
         // Heart rate is health data — never in cleartext logs (audit B5).
         logger.debug("HR: \(hr, format: .fixed(precision: 0), privacy: .private) BPM")
-        streamContinuation?.yield(hr.rounded())
+        streamContinuation.withLock { _ = $0?.yield(hr.rounded()) }
     }
 }

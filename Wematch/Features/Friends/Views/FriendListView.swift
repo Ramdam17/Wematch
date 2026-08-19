@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 enum FriendTab: String, CaseIterable {
     case friends = "Friends"

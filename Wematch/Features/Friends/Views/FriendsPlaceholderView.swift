@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct FriendsPlaceholderView: View {
     var body: some View {

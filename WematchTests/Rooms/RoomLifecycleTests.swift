@@ -147,14 +147,16 @@ final class RoomLifecycleTests: XCTestCase {
         let repo = FirebaseRoomRepository(firebaseService: fake)
 
         let consumer = Task {
-            for await _ in repo.observeParticipants(roomID: "room1") {}
+            // The stream throws since plan 1.7 (D2); this test is about teardown, and
+            // an error would end it just as cancellation does.
+            for try await _ in repo.observeParticipants(roomID: "room1") {}
         }
 
         // Let the observation chain spin up, then cancel the consumer —
         // the underlying Firebase observer must be removed (audit C2).
         try await Task.sleep(for: .milliseconds(100))
         consumer.cancel()
-        _ = await consumer.value
+        _ = try? await consumer.value
         try await Task.sleep(for: .milliseconds(100))
 
         XCTAssertEqual(fake.observeTerminations, ["rooms/room1/users"],

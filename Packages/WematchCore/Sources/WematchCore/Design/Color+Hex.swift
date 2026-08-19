@@ -1,7 +1,8 @@
 import SwiftUI
 
 extension Color {
-    init(hex: String) {
+    /// Both apps carried a copy; the Watch's had drifted by three lines (plan 1.11).
+    public init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)

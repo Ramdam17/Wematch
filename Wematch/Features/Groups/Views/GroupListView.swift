@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct GroupListView: View {
     @Environment(AuthenticationManager.self) private var authManager

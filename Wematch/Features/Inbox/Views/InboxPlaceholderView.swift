@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct InboxPlaceholderView: View {
     var body: some View {

@@ -4,13 +4,14 @@
 included:
   - Wematch
   - WematchWatch Watch App
-  - WematchShared
+  - Packages
   - WematchTests
 
 excluded:
   - Wematch/Assets.xcassets
   - DerivedData
   - .build
+  - Packages/WematchCore/.build
 
 # Existing code is disciplined; keep the config strict but pragmatic.
 disabled_rules:

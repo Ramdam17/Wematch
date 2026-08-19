@@ -1,6 +1,10 @@
 import OSLog
 
-enum Log {
+/// `nonisolated`: logging must work from wherever the code runs. Under the project's
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` these would otherwise be main-actor
+/// properties, which is absurd for a `Logger` — and would push the code paths that most
+/// need a log (delegate queues, detached reads) into not having one (plan 1.10).
+nonisolated enum Log {
     static let general = Logger(subsystem: "com.remyramadour.Wematch", category: "general")
     static let auth = Logger(subsystem: "com.remyramadour.Wematch", category: "authentication")
     static let cloudKit = Logger(subsystem: "com.remyramadour.Wematch", category: "cloudkit")

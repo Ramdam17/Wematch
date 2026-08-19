@@ -85,7 +85,7 @@ final class UserSearchViewModel {
             results = try await repository.searchUsers(query: query, excludingUserID: userID)
         } catch {
             guard !Task.isCancelled else { return }
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Search failed: \(error.localizedDescription)")
         }
     }
@@ -114,7 +114,7 @@ final class UserSearchViewModel {
             sentRequestUserIDs.insert(user.id)
 
             // Notify receiver
-            try? await inboxRepository.createMessage(
+            await inboxRepository.notify(
                 recipientID: user.id,
                 type: .friendRequest,
                 payload: ["senderUsername": senderUsername, "senderID": senderID]
@@ -122,7 +122,7 @@ final class UserSearchViewModel {
 
             Log.friends.info("Sent friend request to \(user.username)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.friends.error("Failed to send request: \(error.localizedDescription)")
         }
     }

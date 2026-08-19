@@ -2,11 +2,19 @@ import Foundation
 import OSLog
 
 /// Where the dashboard's raw records live.
+///
+/// Every requirement is `nonisolated` on purpose (plan 1.10). The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, so without this the methods inherit main
+/// actor isolation and the two `Task.detached { try store.load() }` call sites hop
+/// straight back onto the actor they were written to leave — reading the whole history
+/// file while the plot is drawing. The comments there claimed the read was off the main
+/// actor; it was not. This is the fix for that, rather than the `await` that would have
+/// silenced the compiler and frozen the read on the main actor permanently.
 protocol DashboardRecordStoring: Sendable {
-    func load() throws -> DashboardRecords
+    nonisolated func load() throws -> DashboardRecords
     /// Folds a batch into what is already stored.
-    func append(_ records: DashboardRecords) throws
-    func deleteAll() throws
+    nonisolated func append(_ records: DashboardRecords) throws
+    nonisolated func deleteAll() throws
 }
 
 /// On-device JSON store, in Application Support.
@@ -19,7 +27,7 @@ protocol DashboardRecordStoring: Sendable {
 /// Application Support rather than Caches (the system may evict Caches, and a lifetime
 /// total that silently resets is worse than no total) and rather than Documents (not the
 /// user's own files, and it would show up in Files.app).
-struct DashboardRecordStore: DashboardRecordStoring {
+nonisolated struct DashboardRecordStore: DashboardRecordStoring {
 
     /// The only stored state, so the type stays `Sendable` — `FileManager` is not, even
     /// though the calls made through it here are safe.

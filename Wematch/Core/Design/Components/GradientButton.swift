@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct GradientButton: View {
     let title: String

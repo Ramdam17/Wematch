@@ -12,7 +12,9 @@ import Foundation
 /// - Track longest sync streak (consecutive syncs in a session)
 /// - Show "most synced with" leaderboard
 /// - Compute sync frequency trends over time
-struct SyncEvent: Identifiable, Codable, Equatable, Sendable {
+/// `nonisolated` for the same reason as `DashboardRecords`, which holds these: the store
+/// decodes and compares them off the main actor (plan 1.10).
+nonisolated struct SyncEvent: Identifiable, Codable, Equatable, Sendable {
     /// Unique identifier for this sync event.
     let id: String
 

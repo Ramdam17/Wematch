@@ -3,7 +3,10 @@ import XCTest
 
 // MARK: - Mock Inbox Repository
 
-final class MockInboxRepository: InboxRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxRepository: InboxRepository, @unchecked Sendable {
     var messages: [InboxMessage] = []
     var markedAsReadIDs: [String] = []
     var markedAllAsReadUserIDs: [String] = []
@@ -28,7 +31,11 @@ final class MockInboxRepository: InboxRepository {
         }
     }
 
+    /// Thrown by `deleteMessage`.
+    var deleteError: Error?
+
     func deleteMessage(messageID: String) async throws {
+        if let deleteError { throw deleteError }
         deletedMessageIDs.append(messageID)
         messages.removeAll { $0.id == messageID }
     }
@@ -44,7 +51,10 @@ final class MockInboxRepository: InboxRepository {
 
 // MARK: - Mock Group Repository (for inbox actions)
 
-final class MockInboxGroupRepository: GroupRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxGroupRepository: GroupRepository, @unchecked Sendable {
     var acceptedRequests: [(requestID: String, groupID: String, userID: String)] = []
     var declinedRequestIDs: [String] = []
 
@@ -72,7 +82,10 @@ final class MockInboxGroupRepository: GroupRepository {
 
 // MARK: - Mock Friend Repository (for inbox actions)
 
-final class MockInboxFriendRepository: FriendRepository {
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
+final class MockInboxFriendRepository: FriendRepository, @unchecked Sendable {
     var acceptedRequests: [String] = []
     var declinedRequestIDs: [String] = []
 
@@ -110,8 +123,11 @@ final class InboxViewModelTests: XCTestCase {
     private var authManager: AuthenticationManager!
     private var viewModel: InboxViewModel!
 
-    override func setUp() {
-        super.setUp()
+    /// `async` rather than the plain `setUp()`: XCTest's synchronous hook is
+    /// `nonisolated`, so under Swift 6 it cannot touch this class's main-actor state. The
+    /// `async` overload inherits the test class's isolation (plan 1.10).
+    override func setUp() async throws {
+        try await super.setUp()
         mockInboxRepo = MockInboxRepository()
         mockGroupRepo = MockInboxGroupRepository()
         mockFriendRepo = MockInboxFriendRepository()
@@ -197,6 +213,25 @@ final class InboxViewModelTests: XCTestCase {
         XCTAssertEqual(mockGroupRepo.acceptedRequests.first?.requestID, "req1")
         XCTAssertEqual(mockGroupRepo.acceptedRequests.first?.groupID, "g1")
         XCTAssertTrue(viewModel.messages.isEmpty, "Message should be deleted after action")
+    }
+
+    /// The delete after an action used to be `try?`: a message that could not be removed
+    /// came back on the next fetch, with nothing said (audit D3, plan 1.8).
+    func testAFailedDeleteAfterAnActionIsSurfaced() async {
+        await signInUser()
+        let message = InboxMessage(
+            id: "m1", recipientID: "test_user", type: .groupJoinRequest,
+            payload: ["requestID": "req1", "groupID": "g1", "userID": "joiner", "username": "bob"],
+            isRead: false, createdAt: Date()
+        )
+        mockInboxRepo.messages = [message]
+        mockInboxRepo.deleteError = NSError(domain: "firestore", code: 14)
+        await viewModel.fetchMessages()
+
+        await viewModel.performAction(.accept, on: message)
+
+        XCTAssertEqual(mockGroupRepo.acceptedRequests.count, 1, "the action itself went through")
+        XCTAssertNotNil(viewModel.error, "and the failed cleanup is not swallowed")
     }
 
     func testDeclineGroupJoinRequestCallsGroupRepo() async {

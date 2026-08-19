@@ -1,4 +1,5 @@
 import Foundation
+import WematchCore
 
 struct WatchParticipant: Identifiable, Sendable {
     let id: String
@@ -11,36 +12,20 @@ struct WatchParticipant: Identifiable, Sendable {
         self.id = id
         self.currentHR = currentHR
         self.previousHR = previousHR
-        self.colorSlot = WatchHeartPalette.wrap(colorSlot)
+        self.colorSlot = HeartPaletteSlot(index: colorSlot).index
     }
 
-    /// Initialize from a WatchConnectivity dictionary sent by iPhone.
-    init?(from dictionary: [String: Any]) {
-        guard let id = dictionary["id"] as? String else { return nil }
-        self.id = id
-        self.currentHR = dictionary["currentHR"] as? Double ?? 0
-        self.previousHR = dictionary["previousHR"] as? Double ?? 0
-        // A payload without a slot only comes from a phone build predating it; deriving
-        // it from the ID lands on the same hue the phone would have sent.
-        self.colorSlot = (dictionary["colorSlot"] as? Int).map(WatchHeartPalette.wrap)
-            ?? WatchHeartPalette.slot(forUserID: id)
-    }
-}
-
-/// Pre-computed room state received from iPhone.
-struct WatchRoomUpdate: Sendable {
-    let participants: [WatchParticipant]
-    let currentUserID: String
-    let maxChain: Int
-    let syncedCount: Int
-    let newSyncFormations: Bool
-
-    init?(from message: [String: Any]) {
-        guard let participantDicts = message["participants"] as? [[String: Any]] else { return nil }
-        self.participants = participantDicts.compactMap { WatchParticipant(from: $0) }
-        self.currentUserID = message["currentUserID"] as? String ?? ""
-        self.maxChain = message["maxChain"] as? Int ?? 0
-        self.syncedCount = message["syncedCount"] as? Int ?? 0
-        self.newSyncFormations = message["newSyncFormations"] as? Bool ?? false
+    /// From what the iPhone sent (plan 1.10).
+    ///
+    /// It used to be `init?(from dictionary: [String: Any])`, where every field was an
+    /// `as? Double ?? 0`: a renamed key put a heart at 0 BPM on the plot instead of
+    /// failing. `WatchMessage.RoomUpdate.Participant` is decoded once, or not at all.
+    init(_ participant: WatchMessage.RoomUpdate.Participant) {
+        self.init(
+            id: participant.id,
+            currentHR: participant.currentHR,
+            previousHR: participant.previousHR,
+            colorSlot: participant.colorSlot
+        )
     }
 }

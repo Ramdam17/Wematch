@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct MemberRowView: View {
     let profile: UserProfile

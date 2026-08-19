@@ -1,7 +1,28 @@
+import Synchronization
 import WatchConnectivity
 import os
+import WematchCore
 
-final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendable {
+/// The Watch's end of the WatchConnectivity link.
+///
+/// **Why a lock and not an actor** — same reasoning as `PhoneSessionManager`, which this
+/// mirrors: `WCSessionDelegate` callbacks arrive on WatchConnectivity's serial queue and
+/// must stay synchronous and ordered (plan 1.10, C3). No `@unchecked`: every stored
+/// property is a `let` or lives inside `state`.
+///
+/// The two stored handler closures are gone. They were `var`s written from the main actor
+/// and read from the delegate queue — the actual data race under this type — and each one
+/// re-dispatched through `DispatchQueue.main.async`, which is a second ordering hazard on
+/// a stream where order is the signal. Both readers now take their own `messages()`
+/// stream.
+/// `nonisolated` on the declaration, not merely `Sendable`: conforming to `Sendable` is
+/// not enough to stop the project's `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` from
+/// isolating the members. Without it the `WCSessionDelegate` callbacks are main-actor
+/// isolated while WatchConnectivity calls them on its own `NSOperationQueue` — which in
+/// Swift 6 traps in `_checkExpectedExecutor` at the first activation, and in Swift 5
+/// simply did the wrong thing quietly. It crashed the app on launch the moment the
+/// language mode was raised; that is the bug this step exists to remove (plan 1.10, C3).
+nonisolated final class WatchSessionManager: NSObject, WCSessionDelegate, Sendable {
     static let shared = WatchSessionManager()
 
     private let logger = Logger(
@@ -11,19 +32,14 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
 
     // MARK: - State
 
-    private(set) var isReachable = false
+    private struct State {
+        var isReachable = false
+        var consumers: [UUID: AsyncStream<WatchMessage>.Continuation] = [:]
+    }
 
-    // Command stream (enterRoom / exitRoom)
-    private var commandContinuation: AsyncStream<[String: Any]>.Continuation?
-    private var _receivedMessages: AsyncStream<[String: Any]>?
+    private let state = Mutex(State())
 
-    /// Set by WatchRoomViewModel to receive room updates from iPhone.
-    var roomUpdateHandler: ((WatchRoomUpdate) -> Void)?
-
-    /// Called when the iPhone pushes a fresh dashboard snapshot. Separate from
-    /// `roomUpdateHandler` because it outlives any room: the dashboard is readable
-    /// whether or not a session is running.
-    var dashboardUpdateHandler: ((WatchDashboardSnapshot) -> Void)?
+    var isReachable: Bool { state.withLock(\.isReachable) }
 
     private override init() {
         super.init()
@@ -41,36 +57,38 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
         logger.info("WCSession activation requested (Watch side)")
     }
 
-    // MARK: - Sending HR to iPhone
+    // MARK: - Sending to iPhone
 
-    func sendHeartRate(_ hr: Double, timestamp: Date = Date()) {
+    /// Best effort. The next sample is a second away, so a failed send is worth a log and
+    /// nothing else — but it is never worth pretending it succeeded.
+    func send(_ message: WatchMessage) {
         guard WCSession.default.isReachable else {
-            logger.debug("iPhone not reachable — HR not sent")
+            logger.debug("iPhone not reachable — message not sent")
             return
         }
 
-        let message: [String: Any] = [
-            "type": "heartRate",
-            "hr": hr,
-            "timestamp": timestamp.timeIntervalSince1970
-        ]
+        guard let payload = try? message.encoded() else {
+            logger.error("Could not encode a message for the iPhone")
+            return
+        }
 
-        WCSession.default.sendMessage(message, replyHandler: nil) { [weak self] error in
-            self?.logger.error("Failed to send HR: \(error.localizedDescription)")
+        WCSession.default.sendMessage(payload, replyHandler: nil) { [logger] error in
+            logger.error("Failed to send to iPhone: \(error.localizedDescription)")
         }
     }
 
-    // MARK: - Receiving Commands from iPhone
+    // MARK: - Receiving from iPhone
 
-    var receivedMessages: AsyncStream<[String: Any]> {
-        if let existing = _receivedMessages { return existing }
-
-        let stream = AsyncStream<[String: Any]> { continuation in
-            self.commandContinuation = continuation
-            continuation.onTermination = { @Sendable _ in }
+    /// A fresh stream per caller. Two readers exist on this side — the room and the
+    /// dashboard, which outlives it — and one `AsyncStream` cannot serve both.
+    func messages() -> AsyncStream<WatchMessage> {
+        let id = UUID()
+        return AsyncStream { continuation in
+            state.withLock { $0.consumers[id] = continuation }
+            continuation.onTermination = { [weak self] _ in
+                self?.state.withLock { _ = $0.consumers.removeValue(forKey: id) }
+            }
         }
-        _receivedMessages = stream
-        return stream
     }
 
     // MARK: - WCSessionDelegate
@@ -84,7 +102,7 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
             logger.error("WCSession activation failed: \(error.localizedDescription)")
         } else {
             logger.info("WCSession activated: \(String(describing: activationState))")
-            isReachable = session.isReachable
+            state.withLock { $0.isReachable = session.isReachable }
         }
     }
 
@@ -94,33 +112,26 @@ final class WatchSessionManager: NSObject, WCSessionDelegate, @unchecked Sendabl
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         handleIncomingMessage(message)
-        replyHandler(["status": "received"])
+        replyHandler([:])
     }
 
-    private func handleIncomingMessage(_ message: [String: Any]) {
-        guard let type = message["type"] as? String else { return }
+    private func handleIncomingMessage(_ dictionary: [String: Any]) {
+        let message: WatchMessage
+        do {
+            message = try WatchMessage.decoded(from: dictionary)
+        } catch {
+            logger.error("Unreadable message from iPhone: \(error.localizedDescription)")
+            return
+        }
 
-        switch type {
-        case "roomUpdate":
-            if let update = WatchRoomUpdate(from: message) {
-                DispatchQueue.main.async { [weak self] in
-                    self?.roomUpdateHandler?(update)
-                }
-            }
-        case "dashboardUpdate":
-            if let snapshot = WatchDashboardSnapshot(message: message) {
-                DispatchQueue.main.async { [weak self] in
-                    self?.dashboardUpdateHandler?(snapshot)
-                }
-            }
-        default:
-            logger.debug("Received command: \(type)")
-            commandContinuation?.yield(message)
+        let consumers = state.withLock { Array($0.consumers.values) }
+        for consumer in consumers {
+            consumer.yield(message)
         }
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
-        isReachable = session.isReachable
+        state.withLock { $0.isReachable = session.isReachable }
         logger.info("iPhone reachability changed: \(session.isReachable)")
     }
 }

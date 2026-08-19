@@ -1,4 +1,5 @@
 import XCTest
+import WematchCore
 @testable import Wematch
 
 /// Tests for the scientific core: sync-edge detection, clustering (Bron-Kerbosch

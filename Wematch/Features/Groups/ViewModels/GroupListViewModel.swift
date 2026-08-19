@@ -41,7 +41,7 @@ final class GroupListViewModel {
         do {
             groups = try await repository.fetchMyGroups(userID: userID)
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to fetch groups: \(error.localizedDescription)")
         }
     }
@@ -52,7 +52,7 @@ final class GroupListViewModel {
             groups.removeAll { $0.id == id }
             Log.groups.info("Deleted group \(id)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to delete group: \(error.localizedDescription)")
         }
     }
@@ -65,7 +65,7 @@ final class GroupListViewModel {
             groups.removeAll { $0.id == id }
             Log.groups.info("Left group \(id)")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.groups.error("Failed to leave group: \(error.localizedDescription)")
         }
     }

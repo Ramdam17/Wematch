@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct UsernamePickerView: View {
     @Environment(AuthenticationManager.self) private var authManager

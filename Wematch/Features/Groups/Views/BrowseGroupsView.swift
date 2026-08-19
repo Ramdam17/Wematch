@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct BrowseGroupsView: View {
     let authManager: AuthenticationManager
@@ -114,7 +115,7 @@ struct BrowseGroupsView: View {
         do {
             searchResults = try await repository.searchGroups(query: query)
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
         }
     }
 
@@ -126,7 +127,7 @@ struct BrowseGroupsView: View {
             try await repository.sendJoinRequest(groupID: group.id, userID: userID, username: username)
             sentRequestGroupIDs.insert(group.id)
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
         }
     }
 }

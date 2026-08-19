@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct CreateGroupSheet: View {
     @Environment(\.dismiss) private var dismiss

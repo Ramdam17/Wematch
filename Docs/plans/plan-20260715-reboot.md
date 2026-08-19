@@ -68,7 +68,7 @@ Nothing is distributed (even TestFlight) before 1.1–1.3 are done.
 | # | Step | Findings | Acceptance |
 |---|------|----------|-----------|
 | 1.7 | Error paths: `AsyncThrowingStream` + Firebase `withCancel` in `observe`; remove mock-fallback in release (fail loudly); log dropped CloudKit records; `InboxMessageType.unknown`; connection-state indicator surfaced to RoomView | D1, D2, D3 | Simulated permission-denied shows an error state in UI, not an empty room |
-| 1.8 | CloudKit robustness: `serverRecordChanged` retry on `Group.memberIDs` and friend acceptance; basic `CKError` taxonomy (retryable vs fatal) in one shared helper | D4 | Concurrent member-add test (2 devices) loses no member |
+| 1.8 | ~~CloudKit robustness~~ → Firestore robustness (re-scoped 2026-08-18, see change log): membership races retired by `arrayUnion`/`arrayRemove`, group-code uniqueness by transaction; `BackendError` retryable-vs-fatal taxonomy in one shared helper | D4 | Rules tests for `groupCodes` green on the emulator; `BackendErrorTests` pin the taxonomy; concurrent member-add on 2 devices belongs to the field session |
 | 1.9 | Fix E1 (temp-room ID parsing) properly: stop parsing IDs out of path keys — store member IDs in room metadata | E1 | 0.6's failing test now passes |
 | 1.10 | Concurrency: replace the 2 proven-unsafe `@unchecked Sendable` (WatchHeartRateManager, HealthKitHeartRateService) with actor/lock designs; justify or remove the remaining ones; typed `Codable` WatchMessage replacing `[String: Any]` (resurrect H2's dead code) | C3, H2 | Full Swift 6 strict concurrency build: zero warnings, zero `@unchecked` without a written justification comment |
 | 1.11 | `WematchShared` framework → local multiplatform Swift package (Bezier math, plot coordinates, Color+Hex, participant model, WatchMessage) consumed by both targets | H1 | Both targets build; duplicated files deleted (~500 lines removed) |
@@ -106,9 +106,26 @@ navigation coordinator with single room source of truth + `.onOpenURL` deep-link
 **Acceptance:** swift-reviewer re-run on Rooms/Groups: no CRITICAL; entering the same room
 from 2 tabs impossible.
 
+### Sprint 3d — Notifications
+Promoted from the v2 backlog (decision 2026-08-17). Runs after 3c: tapping a notification
+must land somewhere, and that path is 3c's `.onOpenURL` skeleton. First server-side code in
+the repo — a `functions/` project deployed from git like the rules, triggered on writes to
+`inbox/{uid}/messages`, fanning out to the recipient's FCM tokens for all eight
+`InboxMessageType` cases. Client side: Push capability re-enabled (`aps-environment` returns,
+deliberately this time), authorization requested at the first inbox-producing action rather
+than at launch, FCM token stored under its owner and rotated, token deletion wired into
+sign-out and into `AccountDeletionService`; Firestore rules + emulator tests for the token
+collection; availability behind `FeatureFlagProvider`. `UIBackgroundModes:
+remote-notification` is kept only if silent push proves necessary — alert push does not need
+it. **No heart rate in a payload, ever**: message type, sender display name, target ID,
+nothing else.
+**Acceptance:** two accounts, two devices, app killed — each of the eight types delivers
+exactly one notification and tapping it opens the screen that message concerns; an
+intercepted payload carries no HR value; sign-out and account deletion leave zero tokens
+(Firestore console); rules tests prove one user cannot read or write another's tokens.
+
 ### Phase 3+ — v2 backlog (post-reboot, separate plan)
-Real dashboards, dark cosmic theme, remote feature flags, push notifications (needs the
-deep-link work), localization FR.
+Real dashboards, dark cosmic theme, remote feature flags, localization FR.
 
 ---
 
@@ -208,3 +225,44 @@ Sprint-12 dashboard stubs: metrics derive from SessionLog/SyncEvent; iPhone comp
 pushes a snapshot via WCSession (Watch stays a passive display). Code decision pending:
 "time in sync" = union of SyncEvent intervals vs plain sum (sum overcounts overlapping
 clusters). Design source of truth: Figma file wematch-ds-001 (b3bezjB9kQ1CcRfghj4Saw).
+
+**2026-08-17 — Push notifications promoted from the v2 backlog to Sprint 3d (decision
+Rémy).** Scope: all eight `InboxMessageType` cases, not a subset — the Inbox is invisible
+until the app is opened, so every type it models is a message nobody receives. Sequencing
+was arbitrated against making it block the field session: the twelve cases of
+`Docs/field-tests/session-script.md` (S0–S12) were read and **none depends on a
+notification** — S1 is "A opens a room, B joins the same room", and S10's invitation is
+accepted in person, in-app. The field session measures the one thing nothing else can (the
+Watch/HealthKit path has never run on hardware once) and can invalidate notification work,
+while notification work cannot invalidate it; the cost of being wrong in this order is one
+extra TestFlight build, and internal testers need no review. Notifications therefore land
+after the session, with the 3c work they depend on. Entitlement consequence:
+`aps-environment`, removed the same day as dead surface, returns with 3d — with code behind
+it this time.
+
+**2026-08-18 — Step 1.8 re-scoped from CloudKit to Firestore, and closed.** The step was
+written against D4 — `CKError` taxonomy, `serverRecordChanged` retry on `Group.memberIDs`
+and friend acceptance — and the 2026-07-16 entry above removed CloudKit without saying what
+became of it (1.9 was declared void; 1.8 was left standing). What the audit was actually
+about, split in two:
+- **The read-modify-write races are gone by construction**, not by retry: membership uses
+  `FieldValue.arrayUnion`/`arrayRemove` in batches, friend acceptance is one batch — no
+  client reads a list to write it back. Recorded in decision 0001, which until now justified
+  Firestore only by sharing semantics. The one race that survived was group-code
+  generation (query-then-write, five draws): it is a Firestore transaction now, on a
+  `groupCodes/{code}` reservation document — the `usernames/{username}` pattern — with
+  rules and emulator tests. Decision Rémy: transaction rather than a documented heuristic.
+- **The error taxonomy is `BackendError`** (`Core/Firebase/`): Firestore and URL-loading
+  errors classified into transient (offline, unavailable, deadline, aborted, quota) and
+  fatal (rules refusal, not found, unknown), each with user-facing text; domain errors pass
+  through. Applied where ViewModels turn a caught error into UI state (30 sites). No
+  automatic retry, deliberately: Firestore's persistent cache serves reads and replays
+  writes offline, and that choice is now stated in `FirebaseManager.configure()` instead
+  of inherited. The RTDB keeps `RoomConnectionState`, a richer surface than an alert.
+- The tail of D3 in the same pass: the seven `try?` writes in ViewModels. Six courtesy
+  notifications go through `InboxMessageRepository.notify` (best-effort, but *logged*);
+  the inbox delete-after-action and the temp-room fetch propagate their errors.
+
+Not verified on hardware, like everything else; the emulator rules tests run in CI (no
+Java runtime on the development machine). Deploying `firestore.rules` is still a manual
+step (`firebase/README.md`).

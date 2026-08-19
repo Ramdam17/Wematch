@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct SettingsView: View {
     @Environment(AuthenticationManager.self) private var authManager

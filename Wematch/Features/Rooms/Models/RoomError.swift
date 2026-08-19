@@ -2,7 +2,6 @@ import Foundation
 
 enum RoomError: LocalizedError {
     case firebaseUnavailable
-    case healthKitDenied
     case roomFull
     case alreadyInRoom
     case watchDisconnected
@@ -12,8 +11,6 @@ enum RoomError: LocalizedError {
         switch self {
         case .firebaseUnavailable:
             "Unable to connect to the room service. Please try again later."
-        case .healthKitDenied:
-            "Heart rate access is required to join a room. Please enable it in Settings."
         case .roomFull:
             "This room is full. Maximum 20 participants allowed."
         case .alreadyInRoom:

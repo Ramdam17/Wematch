@@ -45,6 +45,16 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.adminID == request.auth.uid;
     }
 
+    // Group-code uniqueness reservations (one doc per code, created in the same
+    // transaction as the group — plan 1.8). Only the group's admin may claim or
+    // free a code; a claim can only create, never overwrite, so two transactions
+    // racing for one code cannot both win.
+    match /groupCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.adminID == request.auth.uid;
+      allow delete: if signedIn() && resource.data.adminID == request.auth.uid;
+    }
+
     match /joinRequests/{requestID} {
       allow create: if signedIn() && request.resource.data.userID == request.auth.uid;
       allow read: if signedIn() && (

@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct GroupsPlaceholderView: View {
     var body: some View {

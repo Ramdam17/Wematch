@@ -4,9 +4,10 @@ import Foundation
 /// In-memory FirebaseServiceProtocol recording every write/remove path and
 /// every observe-stream termination — lets tests verify cleanup chains
 /// (E1 index removal, C2 listener teardown) end to end.
+/// **`@unchecked Sendable` justification** (plan 1.10): test-only, single-threaded XCTest
+/// access. The observe-termination record is written from the stream's termination
+/// handler, serialised behind the `await` that drains it.
 final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
-    // Test-only fake: single-threaded XCTest access (observe termination is
-    // recorded from the stream's termination handler, serialized by await).
     var storage: [String: [String: any Sendable]] = [:]
     var removedPaths: [String] = []
     var observeTerminations: [String] = []
@@ -20,10 +21,26 @@ final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
         storage[path] = value
     }
 
-    func observe(path: String) -> AsyncStream<[String: Any]> {
-        let snapshot = storage[path] ?? [:]
+    /// Thrown by the observe stream instead of yielding — the permission-denied case.
+    var observeError: Error?
+
+    func read(path: String) async throws -> FirebaseSnapshot {
+        if let readError { throw readError }
+        return FirebaseSnapshot(storage[path] ?? [:])
+    }
+
+    /// Thrown by `read`.
+    var readError: Error?
+
+    func observe(path: String) -> AsyncThrowingStream<FirebaseSnapshot, Error> {
+        let snapshot = FirebaseSnapshot(storage[path] ?? [:])
         let keepOpen = keepObserveOpen
-        return AsyncStream { continuation in
+        let error = observeError
+        return AsyncThrowingStream { continuation in
+            if let error {
+                continuation.finish(throwing: error)
+                return
+            }
             continuation.onTermination = { @Sendable [weak self] _ in
                 self?.observeTerminations.append(path)
             }
@@ -34,9 +51,39 @@ final class FakeFirebaseService: FirebaseServiceProtocol, @unchecked Sendable {
         }
     }
 
+    /// Connection values delivered in order; empty means "connected throughout".
+    var connectionUpdates: [Bool] = []
+
+    func observeConnection() -> AsyncStream<Bool> {
+        let updates = connectionUpdates
+        return AsyncStream { continuation in
+            for value in updates { continuation.yield(value) }
+            continuation.finish()
+        }
+    }
+
     func remove(path: String) async throws {
+        callLog.append("remove:\(path)")
         removedPaths.append(path)
         storage[path] = nil
+    }
+
+    var armedPaths: [String] = []
+    var disarmedPaths: [String] = []
+    /// Thrown by `armDisconnectRemoval` — the server refusing the hook.
+    var armError: Error?
+    /// Every path-touching call, in order — for tests about sequencing.
+    var callLog: [String] = []
+
+    func armDisconnectRemoval(path: String) async throws {
+        callLog.append("arm:\(path)")
+        if let armError { throw armError }
+        armedPaths.append(path)
+    }
+
+    func disarmDisconnectRemoval(path: String) async throws {
+        callLog.append("disarm:\(path)")
+        disarmedPaths.append(path)
     }
 
     func disconnect() {}

@@ -5,7 +5,10 @@ import Foundation
 /// Kept on device only. These records describe who the user synced with and for how
 /// long — personal data about other people as much as about them — so they never leave
 /// the phone and `AccountDeletionService` erases them along with everything else.
-struct DashboardRecords: Codable, Sendable, Equatable {
+/// `nonisolated`: read and written from `DashboardRecordStore` off the main actor, so
+/// the project-wide `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` must not reach it — its
+/// `Codable` conformance included (plan 1.10).
+nonisolated struct DashboardRecords: Codable, Sendable, Equatable {
 
     var sessions: [SessionLog]
     var syncEvents: [SyncEvent]

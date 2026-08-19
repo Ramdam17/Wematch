@@ -1,6 +1,9 @@
 import Foundation
 
-struct HeartRateData: Codable, Sendable, Equatable {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct HeartRateData: Codable, Sendable, Equatable {
     let currentHR: Double
     let previousHR: Double
     let timestamp: Date
@@ -13,7 +16,7 @@ struct HeartRateData: Codable, Sendable, Equatable {
 
     // MARK: - Firebase Serialization
 
-    var firebaseDictionary: [String: Any] {
+    var firebaseDictionary: [String: any Sendable] {
         [
             "currentHR": currentHR,
             "previousHR": previousHR,

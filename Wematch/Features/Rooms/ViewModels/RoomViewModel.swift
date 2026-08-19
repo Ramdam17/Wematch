@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import WematchCore
 
 @Observable
 @MainActor
@@ -14,6 +15,11 @@ final class RoomViewModel {
     private(set) var isLoading = false
     var error: Error?
 
+    /// What the Watch reports about its own heart-rate feed: a denied read produces
+    /// no error and no data, so `.silent`/`.stopped` are the only evidence there is.
+    /// Not `private(set)` — the consumer is an extension in another file.
+    var watchHeartRateStatus: WatchHeartRateStatus = .idle
+
     // MARK: - Room Info
 
     let roomID: String
@@ -23,7 +29,9 @@ final class RoomViewModel {
 
     private let roomRepository: any RoomRepository
     private let tempRoomRepository: any TemporaryRoomRepository
-    private let healthKitService: any HealthKitServiceProtocol
+    /// Internal, not private: the Watch message extension in another file feeds it the
+    /// samples the Watch sends.
+    let healthKitService: any HealthKitServiceProtocol
     let watchService: any WatchConnectivityServiceProtocol
     private let authManager: AuthenticationManager
     /// Internal, not private: the dashboard recording lives in
@@ -38,8 +46,11 @@ final class RoomViewModel {
     // MARK: - Tasks
 
     private var observeTask: Task<Void, Never>?
+    private var connectionTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
     private var simulationTask: Task<Void, Never>?
+    /// Internal for the same reason as `watchHeartRateStatus`.
+    var watchMessageTask: Task<Void, Never>?
 
     // MARK: - Simulated Room Service
 
@@ -64,15 +75,42 @@ final class RoomViewModel {
     /// Internal for the same reason as `dashboardStore`.
     var recorder: SyncSessionRecorder?
 
-    /// Set while heart-rate writes are failing, cleared on the first one that lands.
-    ///
-    /// Separate from `error` on purpose: `error` presents a modal alert, which is the wrong
-    /// shape for a failure that repeats every second and needs no decision from the user.
-    private(set) var sharingWarning: String?
+    // MARK: - Connection Health
+    //
+    // Three links can break independently; they are folded into one `connectionState`
+    // (plan 1.7). Kept separate here because they are *set* in three unrelated places,
+    // and merged at the point of reading so precedence lives in one testable function.
+
+    /// The device is not reaching the database at all (`.info/connected`).
+    private(set) var isOffline = false
+
+    /// The participants stream threw — permission denied, or a listener the server
+    /// refused. Not the same event as `isOffline`, and neither implies the other.
+    private(set) var isRoomUnreachable = false
+
+    /// A Watch command could not be delivered at all. Internal rather than
+    /// `private(set)` for the same reason as `watchHeartRateStatus`: it is written by
+    /// the Watch extension in another file.
+    var isWatchUnreachable = false
+
+    /// False while heart-rate writes are failing, true again on the first one that lands.
+    private(set) var isSharingHeartRate = true
+
+    /// What the room says about itself. Deliberately not an `error`: `error` presents a
+    /// modal alert, which is the wrong shape for a failure that repeats every second and
+    /// needs no decision from the user.
+    var connectionState: RoomConnectionState {
+        RoomConnectionState.resolve(isOffline: isOffline,
+                                    roomUnreachable: isRoomUnreachable,
+                                    watchUnreachable: isWatchUnreachable,
+                                    watchHeartRate: watchHeartRateStatus,
+                                    isSharingHeartRate: isSharingHeartRate)
+    }
 
     // MARK: - Participant Color
 
-    private var assignedSlot = HeartPaletteSlot(index: 0)
+    /// Internal, not private: read by the plot extension in another file.
+    var assignedSlot = HeartPaletteSlot(index: 0)
 
     // MARK: - Init
 
@@ -88,6 +126,10 @@ final class RoomViewModel {
         self.roomName = roomName
         self.roomRepository = roomRepository ?? FirebaseRoomRepository()
         self.tempRoomRepository = tempRoomRepository ?? FirebaseTemporaryRoomRepository()
+        // The last `.shared` a ViewModel names, and a default argument rather than a
+        // reached-for dependency: every test injects its own, so nothing here ever
+        // touches the singleton. It becomes an injected parameter when plan 3c builds
+        // the composition root that has somewhere to inject it from.
         self.watchService = watchService ?? PhoneSessionManager.shared
         self.dashboardStore = dashboardStore ?? DashboardRecordStore()
         self.authManager = authManager
@@ -95,7 +137,7 @@ final class RoomViewModel {
         #if targetEnvironment(simulator)
         self.healthKitService = healthKitService ?? SimulatedHeartRateService()
         #else
-        self.healthKitService = healthKitService ?? HealthKitHeartRateService()
+        self.healthKitService = healthKitService ?? WatchRelayHeartRateService()
         #endif
 
         // Claim a palette slot from the user ID. Stable across launches and devices,
@@ -112,43 +154,6 @@ final class RoomViewModel {
     var currentUserID: String? { authManager.currentUserID }
     var currentUsername: String { authManager.userProfile?.username ?? "unknown" }
 
-    var otherParticipants: [RoomParticipant] {
-        participants.filter { $0.id != currentUserID }
-    }
-
-    var participantCount: Int { participants.count }
-
-    /// All participants for the 2D plot, including self and simulated users.
-    var allParticipantsForPlot: [RoomParticipant] {
-        var result = participants
-
-        // Add self if not already in Firebase participants (edge case during join)
-        // Note: Firebase stores IDs as firebaseSafe() (dots → underscores), so we must compare using the safe version
-        if let userID = currentUserID {
-            let safeUserID = userID.firebaseSafe()
-            if !result.contains(where: { $0.id == safeUserID }), ownHeartRate > 0 {
-                result.append(RoomParticipant(
-                    id: safeUserID,
-                    username: currentUsername,
-                    currentHR: ownHeartRate,
-                    previousHR: previousHeartRate,
-                    slot: assignedSlot
-                ))
-            }
-        }
-
-        #if targetEnvironment(simulator)
-        result.append(contentsOf: simulatedParticipants)
-        #endif
-
-        return result
-    }
-
-    /// Sync graph computed from current participants.
-    var syncGraph: SyncGraph {
-        SyncGraph(participants: allParticipantsForPlot)
-    }
-
     // MARK: - Room Lifecycle
 
     func enterRoom() async {
@@ -160,18 +165,12 @@ final class RoomViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        // 1. Request HealthKit authorization if needed
-        if !healthKitService.isAuthorized {
-            do {
-                try await healthKitService.requestAuthorization()
-            } catch {
-                self.error = RoomError.healthKitDenied
-                Log.rooms.error("HealthKit authorization denied: \(error.localizedDescription)")
-                return
-            }
-        }
+        // The phone asks HealthKit for nothing: heart rate arrives over
+        // WatchConnectivity, and the Watch owns its own authorization. It used to
+        // request a read it never performed, and present `healthKitDenied` for a
+        // refusal HealthKit never reports.
 
-        // 2. Join room in Firebase
+        // 1. Join room in Firebase
         let participant = RoomParticipant(
             id: userID,
             username: currentUsername,
@@ -184,36 +183,36 @@ final class RoomViewModel {
 
             startDashboardRecording(userID: userID)
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.rooms.error("Failed to join room: \(error.localizedDescription)")
             return
         }
 
-        // 3. Start observing other participants
+        // 2. Start observing other participants, and the link they arrive over
         startObservingParticipants()
+        startObservingConnection()
 
-        // 4. Start streaming heart rate
+        startObservingWatchMessages()
+
+        // 3. Start streaming heart rate
         startHeartRateStreaming()
 
-        // 5. On real device: wire Watch HR → HealthKit stream, then tell Watch to start
+        // 4. On real device: tell the Watch to start its workout. The heart rate it
+        // sends back enters through `startObservingWatchMessages` above — no handler
+        // installed on a singleton, no downcast of the injected protocol (plan 1.10).
         #if !targetEnvironment(simulator)
-        if let hkService = healthKitService as? HealthKitHeartRateService {
-            PhoneSessionManager.shared.heartRateHandler = { [weak hkService] hr in
-                hkService?.yield(heartRate: hr)
-            }
-        }
-        sendWatchCommand("enterRoom", roomID: roomID)
+        sendWatchCommand(.enterRoom(roomID: roomID))
         #endif
 
-        // 6. Start simulated room participants (simulator only)
+        // 5. Start simulated room participants (simulator only)
         #if targetEnvironment(simulator)
         startSimulatedParticipants()
         #endif
 
-        // 7. Start star drift timer
+        // 6. Start star drift timer
         startStarTimer()
 
-        // 8. Give the Watch something to show if the user swipes to the dashboard.
+        // 7. Give the Watch something to show if the user swipes to the dashboard.
         Task { await pushDashboardSnapshotToWatch() }
 
         Log.rooms.info("Entered room \(self.roomID)")
@@ -227,13 +226,23 @@ final class RoomViewModel {
 
         // 1. Cancel all background tasks
         observeTask?.cancel()
+        connectionTask?.cancel()
         heartRateTask?.cancel()
         simulationTask?.cancel()
         starTimerTask?.cancel()
+        watchMessageTask?.cancel()
         observeTask = nil
+        connectionTask = nil
         heartRateTask = nil
         simulationTask = nil
         starTimerTask = nil
+        watchMessageTask = nil
+        watchHeartRateStatus = .idle
+        // A room we are no longer in has no connection to complain about.
+        isOffline = false
+        isRoomUnreachable = false
+        isWatchUnreachable = false
+        isSharingHeartRate = true
 
         #if targetEnvironment(simulator)
         simulatedRoomService.stopSimulation()
@@ -243,10 +252,10 @@ final class RoomViewModel {
         // 2. Stop HR streaming
         healthKitService.stopHeartRateStreaming()
 
-        // 3. Tell Watch to stop HR session + disconnect handler
+        // 3. Tell the Watch to stop its workout. Nothing to disconnect: the message
+        // stream ends with `watchMessageTask`, cancelled in step 1.
         #if !targetEnvironment(simulator)
-        PhoneSessionManager.shared.heartRateHandler = nil
-        sendWatchCommand("exitRoom")
+        sendWatchCommand(.exitRoom)
         #endif
 
         // 4. Network cleanup — needs an identity; when the session is already
@@ -372,57 +381,32 @@ final class RoomViewModel {
         }
     }
 
-    // MARK: - Private: Watch Room Updates
+    // MARK: - Private: Observation
 
-    private func sendRoomUpdateToWatch(newSyncFormations: Bool) {
-        #if !targetEnvironment(simulator)
-        let graph = syncGraph
-        let maxChain = graph.softClusters.map(\.chainLength).max() ?? 0
-        let syncedIDs = Set(graph.softClusters.flatMap(\.memberIDs))
-
-        let participantDicts: [[String: Any]] = allParticipantsForPlot.map { p in
-            [
-                "id": p.id,
-                "currentHR": p.currentHR,
-                "previousHR": p.previousHR,
-                "colorSlot": p.slot.index
-            ]
-        }
-
-        PhoneSessionManager.shared.sendRoomUpdate(
-            participants: participantDicts,
-            currentUserID: currentUserID ?? "",
-            maxChain: maxChain,
-            syncedCount: syncedIDs.count,
-            newSyncFormations: newSyncFormations
-        )
-        #endif
-    }
-
-    // MARK: - Private: Watch Commands
-
-    private func sendWatchCommand(_ type: String, roomID: String? = nil) {
-        var message: [String: Any] = ["type": type]
-        if let roomID { message["roomID"] = roomID }
-
-        Task {
-            do {
-                try await watchService.send(message: message)
-                Log.rooms.debug("Sent \(type) command to Watch")
-            } catch {
-                Log.rooms.warning("Failed to send \(type) to Watch: \(error.localizedDescription)")
+    private func startObservingConnection() {
+        connectionTask = Task {
+            for await isConnected in roomRepository.observeConnection() {
+                guard !Task.isCancelled else { break }
+                self.isOffline = !isConnected
             }
         }
     }
 
-    // MARK: - Private: Observation
-
     private func startObservingParticipants() {
         observeTask = Task {
-            for await updatedParticipants in roomRepository.observeParticipants(roomID: roomID) {
-                guard !Task.isCancelled else { break }
-                self.participants = updatedParticipants
-                processSyncChanges()
+            do {
+                for try await updatedParticipants in roomRepository.observeParticipants(roomID: roomID) {
+                    guard !Task.isCancelled else { break }
+                    self.isRoomUnreachable = false
+                    self.participants = updatedParticipants
+                    processSyncChanges()
+                }
+            } catch is CancellationError {
+                // Leaving the room, not a fault.
+            } catch {
+                // The plot is now a photograph of the past, and says so (plan 1.7, D2).
+                Log.rooms.error("Room stream lost: \(error.localizedDescription)")
+                self.isRoomUnreachable = true
             }
         }
     }
@@ -456,13 +440,13 @@ final class RoomViewModel {
                         slot: assignedSlot
                     )
                     // A single success means the room is seeing us again.
-                    sharingWarning = nil
+                    isSharingHeartRate = true
                 } catch {
                     // Surfaced, not just logged (audit D). Deliberately not thrown into
                     // `error`: that drives a modal alert, and this fires once a second
                     // while the network is down. One quiet banner, cleared on recovery.
                     Log.rooms.error("Failed to update HR: \(error.localizedDescription)")
-                    sharingWarning = "Your heart isn't reaching the room."
+                    isSharingHeartRate = false
                 }
             }
         }

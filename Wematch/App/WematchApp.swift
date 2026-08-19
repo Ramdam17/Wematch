@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import WematchCore
 
 @main
 struct WematchApp: App {
@@ -58,7 +59,7 @@ struct WematchApp: App {
             try? await Task.sleep(for: .milliseconds(500))
 
             do {
-                try await PhoneSessionManager.shared.send(message: ["type": "appLaunched"])
+                try await PhoneSessionManager.shared.send(.appLaunched)
                 Log.general.debug("Wake-up message sent to Watch")
             } catch {
                 // Watch may not be reachable — this is expected if Watch is off/disconnected

@@ -41,19 +41,12 @@ struct FirestoreFriendRepository: FriendRepository {
         }
         guard !isFriend else { throw FriendError.alreadyFriends }
 
-        // Pending in either direction blocks a new request.
-        async let outgoing = database.collection("friendRequests")
-            .whereField("senderID", isEqualTo: senderID)
-            .whereField("receiverID", isEqualTo: receiverID)
-            .whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
-            .limit(to: 1).getDocuments()
-        async let incoming = database.collection("friendRequests")
-            .whereField("senderID", isEqualTo: receiverID)
-            .whereField("receiverID", isEqualTo: senderID)
-            .whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
-            .limit(to: 1).getDocuments()
-        let (outgoingDocs, incomingDocs) = try await (outgoing.documents, incoming.documents)
-        guard outgoingDocs.isEmpty && incomingDocs.isEmpty else { throw FriendError.alreadyRequested }
+        // Pending in either direction blocks a new request. Only the count crosses back:
+        // `QueryDocumentSnapshot` is not `Sendable` (plan 1.10).
+        async let outgoing = Self.requestPaths(senderID: senderID, receiverID: receiverID, pendingOnly: true)
+        async let incoming = Self.requestPaths(senderID: receiverID, receiverID: senderID, pendingOnly: true)
+        let (outgoingPaths, incomingPaths) = try await (outgoing, incoming)
+        guard outgoingPaths.isEmpty && incomingPaths.isEmpty else { throw FriendError.alreadyRequested }
 
         try await database.collection("friendRequests").document().setData([
             "senderID": senderID,
@@ -133,21 +126,27 @@ struct FirestoreFriendRepository: FriendRepository {
 
     func deleteAllFriendData(userID: String) async throws {
         guard let database else { throw FirebaseAuthError.notConfigured }
-        async let friendships = database.collection("friendships")
-            .whereField("userIDs", arrayContains: userID).getDocuments()
-        async let sent = database.collection("friendRequests")
-            .whereField("senderID", isEqualTo: userID).getDocuments()
-        async let received = database.collection("friendRequests")
-            .whereField("receiverID", isEqualTo: userID).getDocuments()
 
-        let docs = try await friendships.documents + sent.documents + received.documents
-        guard !docs.isEmpty else { return }
+        // Document *paths* cross back, not references: `DocumentReference` is not
+        // `Sendable`, and a path is enough to rebuild one on this side (plan 1.10).
+        async let friendships = Self.paths(in: "friendships") {
+            $0.whereField("userIDs", arrayContains: userID)
+        }
+        async let sent = Self.paths(in: "friendRequests") {
+            $0.whereField("senderID", isEqualTo: userID)
+        }
+        async let received = Self.paths(in: "friendRequests") {
+            $0.whereField("receiverID", isEqualTo: userID)
+        }
+
+        let paths = try await friendships + sent + received
+        guard !paths.isEmpty else { return }
         let batch = database.batch()
-        for doc in docs {
-            batch.deleteDocument(doc.reference)
+        for path in paths {
+            batch.deleteDocument(database.document(path))
         }
         try await batch.commit()
-        Log.friends.info("Deleted \(docs.count) friend-related documents")
+        Log.friends.info("Deleted \(paths.count) friend-related documents")
     }
 
     // MARK: - Helpers
@@ -159,6 +158,34 @@ struct FirestoreFriendRepository: FriendRepository {
             .whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
             .getDocuments()
         return snapshot.documents.compactMap(Self.friendRequest(from:))
+    }
+
+    /// Runs one query and returns the matching document paths, entirely within the
+    /// caller's task. Nothing Firestore-shaped leaves it.
+    private static func paths(
+        in collection: String,
+        _ narrow: @Sendable (CollectionReference) -> Query
+    ) async throws -> [String] {
+        guard FirebaseApp.app() != nil else { throw FirebaseAuthError.notConfigured }
+        let reference = Firestore.firestore().collection(collection)
+        let snapshot = try await narrow(reference).getDocuments()
+        return snapshot.documents.map(\.reference.path)
+    }
+
+    private static func requestPaths(
+        senderID: String,
+        receiverID: String,
+        pendingOnly: Bool
+    ) async throws -> [String] {
+        try await paths(in: "friendRequests") { collection in
+            var query = collection
+                .whereField("senderID", isEqualTo: senderID)
+                .whereField("receiverID", isEqualTo: receiverID)
+            if pendingOnly {
+                query = query.whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
+            }
+            return query.limit(to: 1)
+        }
     }
 
     private static func friendship(from doc: DocumentSnapshot) -> Friendship? {

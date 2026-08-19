@@ -10,7 +10,10 @@ import Foundation
 ///
 /// A pure value type with no clock and no storage of its own, so the whole recording
 /// contract is testable by calling `observe(cluster:at:)` with dates.
-struct SyncSessionRecorder {
+/// `nonisolated`: a pure value type with no UI in it. The project sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise bind this — and
+/// the computation it carries — to the main actor for no reason (plan 1.10).
+nonisolated struct SyncSessionRecorder {
 
     private(set) var session: SessionLog
     private(set) var completedEvents: [SyncEvent] = []

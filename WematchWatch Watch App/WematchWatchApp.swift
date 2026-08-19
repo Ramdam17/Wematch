@@ -1,5 +1,6 @@
 import SwiftUI
 import os
+import WematchCore
 
 @main
 struct WematchWatchApp: App {
@@ -27,12 +28,8 @@ struct WematchWatchApp: App {
                 WatchDashboardView(snapshot: dashboardSnapshot)
             }
             .tabViewStyle(.page)
-            .task {
-                WatchSessionManager.shared.dashboardUpdateHandler = { snapshot in
-                    dashboardSnapshot = snapshot
-                }
-                await listenForCommands()
-            }
+            .task { await listenForDashboardUpdates() }
+            .task { await listenForCommands() }
         }
     }
 
@@ -62,21 +59,33 @@ struct WematchWatchApp: App {
 
     // MARK: - Command Listener
 
+    /// Its own stream, not a shared one: the dashboard reader below runs at the same
+    /// time, and one `AsyncStream` served to two consumers starves one of them
+    /// (plan 1.10).
     private func listenForCommands() async {
-        for await message in WatchSessionManager.shared.receivedMessages {
-            guard let type = message["type"] as? String else { continue }
-
-            switch type {
-            case "appLaunched":
+        for await message in WatchSessionManager.shared.messages() {
+            switch message {
+            case .appLaunched:
                 // iPhone app became active — Watch app is now awake
                 logger.debug("Watch app woken up by iPhone")
-            case "enterRoom":
+            case .enterRoom:
                 startRoom()
-            case "exitRoom":
+            case .exitRoom:
                 stopRoom()
-            default:
-                break
+            case .dashboardUpdate, .heartRate, .heartRateStatus, .roomUpdate:
+                continue
             }
+        }
+    }
+
+    /// Deliberately separate from the room: the dashboard is history, and stays readable
+    /// after the session ends. It used to be a closure stored on the session manager —
+    /// a `var` written from the main actor and read from the WatchConnectivity delegate
+    /// queue, which was one of the races this step removes.
+    private func listenForDashboardUpdates() async {
+        for await message in WatchSessionManager.shared.messages() {
+            guard case .dashboardUpdate(let snapshot) = message else { continue }
+            dashboardSnapshot = snapshot
         }
     }
 

@@ -11,7 +11,9 @@ import Foundation
 /// - Compute total time spent in rooms (daily, weekly, all-time)
 /// - Calculate average session duration
 /// - Identify most active time-of-day patterns
-struct SessionLog: Identifiable, Codable, Equatable, Sendable {
+/// `nonisolated` for the same reason as `DashboardRecords`, which holds these: the store
+/// decodes and compares them off the main actor (plan 1.10).
+nonisolated struct SessionLog: Identifiable, Codable, Equatable, Sendable {
     /// Unique identifier for this session log entry.
     let id: String
 

@@ -49,11 +49,13 @@ final class RoomListViewModel {
             async let fetchedTempRooms = tempRoomRepository.fetchActiveRooms(userID: userID)
 
             groups = try await fetchedGroups
-            temporaryRooms = (try? await fetchedTempRooms) ?? []
+            // Both or the error: an unreachable RTDB used to read as "no temporary rooms",
+            // the exact silence audit D2 is about.
+            temporaryRooms = try await fetchedTempRooms
 
             Log.rooms.debug("Fetched \(self.groups.count) groups + \(self.temporaryRooms.count) temp rooms")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.rooms.error("Failed to fetch rooms: \(error.localizedDescription)")
         }
     }

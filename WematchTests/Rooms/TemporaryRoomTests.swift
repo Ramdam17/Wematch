@@ -1,12 +1,22 @@
 import XCTest
+import WematchCore
 @testable import Wematch
 
 // MARK: - Spy Mocks
 
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
 final class MockRoomRepository: RoomRepository, @unchecked Sendable {
     // Test-only mock: single-threaded XCTest access, no real concurrency.
     var joinedRoomIDs: [String] = []
     var leftRoomIDs: [String] = []
+    /// Thrown by the participants stream — a permission-denied listener, in practice.
+    var observeError: Error?
+    /// Thrown by every heart-rate write until cleared.
+    var heartRateWriteError: Error?
+    /// Connection values delivered in order; empty means "connected throughout".
+    var connectionUpdates: [Bool] = []
 
     func joinRoom(roomID: String, participant: RoomParticipant) async throws {
         joinedRoomIDs.append(roomID)
@@ -17,13 +27,33 @@ final class MockRoomRepository: RoomRepository, @unchecked Sendable {
     }
 
     func updateHeartRate(roomID: String, userID: String, data: HeartRateData,
-                         username: String, slot: HeartPaletteSlot) async throws {}
+                         username: String, slot: HeartPaletteSlot) async throws {
+        if let heartRateWriteError { throw heartRateWriteError }
+    }
 
-    func observeParticipants(roomID: String) -> AsyncStream<[RoomParticipant]> {
-        AsyncStream { $0.finish() }
+    func observeConnection() -> AsyncStream<Bool> {
+        let updates = connectionUpdates
+        return AsyncStream { continuation in
+            for value in updates { continuation.yield(value) }
+            continuation.finish()
+        }
+    }
+
+    func observeParticipants(roomID: String) -> AsyncThrowingStream<[RoomParticipant], Error> {
+        let error = observeError
+        return AsyncThrowingStream { continuation in
+            if let error {
+                continuation.finish(throwing: error)
+            } else {
+                continuation.finish()
+            }
+        }
     }
 }
 
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
 final class SpyTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Sendable {
     // Test-only spy: single-threaded XCTest access.
     var hasParticipantsResult = false
@@ -46,21 +76,79 @@ final class SpyTemporaryRoomRepository: TemporaryRoomRepository, @unchecked Send
 // FakeFirebaseService lives in WematchTests/Support/FakeFirebaseService.swift
 // (shared with RoomLifecycleTests).
 
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
 final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {
-    var isAuthorized = true
-    func requestAuthorization() async throws {}
+
+    /// Samples pushed in through the protocol, as the Watch relay does on a real device.
+    /// Recorded rather than forwarded: the point of the seam is that a test can see what
+    /// the ViewModel handed the heart-rate source without a Watch in the room.
+    var relayedHeartRates: [Double] = []
+
+    /// Beats to deliver. The first is emitted as soon as the stream is consumed; the
+    /// rest wait for `emitNext()`, so a test can script "this write fails, the next
+    /// one lands". Empty (the default) keeps the historical behaviour: no heart at all.
+    var scriptedHeartRates: [Double] = []
+
+    private var continuation: AsyncStream<Double>.Continuation?
+    private var pending: [Double] = []
+
     func startHeartRateStreaming() -> AsyncStream<Double> {
-        AsyncStream { $0.finish() }
+        AsyncStream { continuation in
+            self.continuation = continuation
+            self.pending = self.scriptedHeartRates
+            if self.pending.isEmpty {
+                continuation.finish()
+            } else {
+                continuation.yield(self.pending.removeFirst())
+            }
+        }
     }
-    func stopHeartRateStreaming() {}
+
+    func emitNext() {
+        guard !pending.isEmpty else { return }
+        continuation?.yield(pending.removeFirst())
+    }
+
+    func yield(heartRate: Double) {
+        relayedHeartRates.append(heartRate)
+        continuation?.yield(heartRate)
+    }
+
+    func stopHeartRateStreaming() {
+        continuation?.finish()
+    }
 }
 
+/// `@unchecked Sendable` justification: test-only. The stored state is written and
+/// read from the main actor inside a single test method, and no instance outlives
+/// the test that made it (plan 1.10).
 final class MockWatchService: WatchConnectivityServiceProtocol, @unchecked Sendable {
     var isReachable = false
+    /// Messages the Watch "sends" as soon as the phone starts listening.
+    var scriptedMessages: [WatchMessage] = []
+    /// Thrown by `send` — how an unreachable Watch behaves since plan 1.7 (D1).
+    var sendError: Error?
+    var sentMessages: [WatchMessage] = []
+
     func activate() {}
-    func send(message: [String: Any]) async throws {}
-    var receivedMessages: AsyncStream<[String: Any]> {
-        AsyncStream { $0.finish() }
+
+    func send(_ message: WatchMessage) async throws {
+        sentMessages.append(message)
+        if let sendError { throw sendError }
+    }
+
+    func sendWithoutAcknowledgement(_ message: WatchMessage) {
+        sentMessages.append(message)
+    }
+
+    func messages() -> AsyncStream<WatchMessage> {
+        let scripted = scriptedMessages
+        return AsyncStream { continuation in
+            for message in scripted { continuation.yield(message) }
+            continuation.finish()
+        }
     }
 }
 

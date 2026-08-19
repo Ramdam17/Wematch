@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct GroupDetailView: View {
     @Environment(\.dismiss) private var dismiss

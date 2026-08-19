@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 extension View {
     /// `Glass/Glow Soft` — the resting elevation for a floating surface.

@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct GlassCard<Content: View>: View {
     let content: Content

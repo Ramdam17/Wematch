@@ -67,7 +67,7 @@ final class SettingsViewModel {
             authManager.signOut()
             Log.settings.info("Account deleted and signed out")
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
             Log.settings.error("Account deletion failed: \(error.localizedDescription)")
         }
     }

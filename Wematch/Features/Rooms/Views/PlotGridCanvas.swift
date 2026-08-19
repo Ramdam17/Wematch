@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct PlotGridCanvas: View {
     let insets: EdgeInsets

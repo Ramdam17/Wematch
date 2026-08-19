@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct JoinGroupSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -135,7 +136,7 @@ struct JoinGroupSheet: View {
             try await repository.sendJoinRequest(groupID: group.id, userID: userID, username: username)
             requestSent = true
         } catch {
-            self.error = error
+            self.error = BackendError.classify(error)
         }
     }
 }

@@ -1,12 +1,17 @@
 import Foundation
+import Synchronization
 import OSLog
+import WematchCore
 
 /// Generates fake multi-user heart rate data for plot testing in the simulator.
 /// Each virtual participant has independent random-walk HR with mean reversion.
-final class SimulatedRoomDataService: @unchecked Sendable {
+nonisolated final class SimulatedRoomDataService: Sendable {
 
     private let participantCount: Int
-    private var streamTask: Task<Void, Never>?
+    /// Behind a lock rather than under `@unchecked Sendable`: the task is started from a
+    /// ViewModel and cancelled from the room's teardown, which are not the same context
+    /// (plan 1.10).
+    private let streamTask = Mutex<Task<Void, Never>?>(nil)
 
     init(participantCount: Int = 20) {
         self.participantCount = participantCount
@@ -89,7 +94,7 @@ final class SimulatedRoomDataService: @unchecked Sendable {
                 continuation.finish()
             }
 
-            self.streamTask = task
+            streamTask.withLock { $0 = task }
 
             continuation.onTermination = { @Sendable _ in
                 task.cancel()
@@ -98,8 +103,10 @@ final class SimulatedRoomDataService: @unchecked Sendable {
     }
 
     func stopSimulation() {
-        streamTask?.cancel()
-        streamTask = nil
+        streamTask.withLock { task in
+            task?.cancel()
+            task = nil
+        }
         Log.rooms.info("[Simulated] Room simulation stopped")
     }
 }

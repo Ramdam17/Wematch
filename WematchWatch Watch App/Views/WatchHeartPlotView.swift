@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct WatchHeartPlotView: View {
     let participants: [WatchParticipant]
@@ -17,7 +18,7 @@ struct WatchHeartPlotView: View {
 
                 // Heart markers (no labels, no stars, no cluster circles)
                 ForEach(participants) { participant in
-                    let pos = WatchPlotCoordinates.position(
+                    let pos = PlotCoordinates.position(
                         previousHR: participant.previousHR,
                         currentHR: participant.currentHR,
                         in: size,
