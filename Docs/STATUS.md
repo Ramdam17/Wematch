@@ -11,7 +11,7 @@ before the branch is merged, while the answers are still true.
 |---|---|
 | Tests | 203 passing, 0 failing |
 | Language mode | **Swift 6** — all 4 targets, Debug and Release, zero warnings (raised at 1.10) |
-| Lint | `swiftlint --strict` clean, 176 files |
+| Lint | `swiftlint --strict` clean, 171 files (the package included) |
 | CI | green on PRs — build ×2 targets, tests, Firebase rules |
 | Distributed | nothing yet, not even TestFlight |
 | Verified on a real device | **nothing** |
@@ -24,7 +24,7 @@ which runs `SimulatedHeartRateService` and never exercises the Watch path.
 **Phase 0 — healthy environment: done.** Test target wired, first real tests, SwiftLint
 baseline, CI (`fcf47be`).
 
-**Phase 1 — secure and stabilize: 8 of 11 steps done.**
+**Phase 1 — secure and stabilize: 9 of 11 steps done.**
 
 | Step | State |
 |---|---|
@@ -36,7 +36,7 @@ baseline, CI (`fcf47be`).
 | 1.8 CloudKit robustness (D4) | **open** — re-scope: the CloudKit layer is gone |
 | 1.9 Temp-room ID parsing (E1) | done early, in 1.2c |
 | 1.10 Concurrency, typed WatchMessage, Swift 6 language mode | **done, unverified on hardware** — see below |
-| 1.11 `WematchShared` → local Swift package | **open** |
+| 1.11 `WematchShared` → local Swift package | **done** — see below |
 
 **1.7, in detail.** `observe` is an `AsyncThrowingStream` with Firebase's `withCancel`, so a
 listener the server refuses ends with its error instead of going quiet forever. `send` on
@@ -82,8 +82,8 @@ zero warnings" — and the first thing it turned up is that the project was not 
 all. All eight build configurations read `SWIFT_VERSION = 5.0`; what was set was
 `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` and `SWIFT_APPROACHABLE_CONCURRENCY`, which are
 the migration aids, not the migration. `CLAUDE.md` claimed Swift 6; the compiler disagreed.
-All four targets are on `6.0` now — `WematchShared` included, empty as it is, so that 1.11
-does not inherit a target still speaking Swift 5.
+All targets are on `6.0` now. (`WematchShared` was raised with them and then deleted at
+1.11, below.)
 
 **Raising it crashed the app on launch, and that is the headline.** `PhoneSessionManager`'s
 `WCSessionDelegate` callbacks were main-actor isolated by the project-wide default, while
@@ -135,6 +135,40 @@ composition root that has somewhere to inject it from.
 simulator, which does not exercise WatchConnectivity at all beyond activation — the
 `enterRoom`/`exitRoom`/heart-rate path is still first exercised by the field session.
 
+**1.11, in detail.** `Packages/WematchCore` is a local Swift package, consumed by both
+apps. It replaces `WematchShared`, a framework created iOS-only and therefore incapable of
+being what its name claimed: every model the Watch shared with the phone was transcribed by
+hand instead, under comments asking the reader to keep the copies in sync. Two had already
+drifted — only the Watch's `WatchDashboardSnapshot` could format a duration, only the
+phone's could be built from records; `Color+Hex` differed by three lines.
+
+What moved: the `WatchMessage` wire and its error, `WatchHeartRateStatus`,
+`WatchDashboardSnapshot` (the phone keeps `make(from:)`, which needs the on-device history
+the Watch must not have), `HeartPaletteSlot` and the twenty hexes, `BezierPath`,
+`PlotCoordinates`, `Color(hex:)`. The palette is the one that mattered most: the FNV-1a
+hash deriving a participant's hue existed twice, and the hex array carried a comment
+reading "must match exactly" — two transcriptions of the colour two screens use to identify
+the same person.
+
+The `WematchShared` target is gone with it: 21 references out of the project file, and one
+empty framework no longer embedded and code-signed into the app bundle for nothing
+(verified: `Wematch.app/Frameworks` no longer contains it). Net −416 lines.
+
+The package sets no `defaultIsolation`, so it is `nonisolated` throughout — the opposite of
+the apps' `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, and right for types decoded on a
+WatchConnectivity delegate queue as often as they are read in a `View`. Only
+`BezierPositionModifier` is `@MainActor`, and its `Animatable` conformance is
+`@preconcurrency`: what the apps got silently from their project-wide default is stated
+out loud there.
+
+**No test target in the package.** `swift test` would build it for macOS, which the package
+does not support, so those tests could never be run from a command line — and a test target
+nobody can run is worse than none. The types are covered from `WematchTests`, on the
+simulator, against the real dependency graph. `HeartPaletteSlotTests` is what proves the
+move changed no colour: it pins the slots the hash derives, and it passed unchanged.
+
+**Not verified:** the Watch app builds for both configurations and has not been run.
+
 **Phase 2 — robust method: 2.1–2.3 and 2.5 done, 2.4 written but not run.**
 The Figma library and the six screens are the source of truth and match the code; the
 design system is backported (`ef8d5bf`); the Definition of Done in `CLAUDE.md` is now
@@ -159,10 +193,8 @@ does not block the field session.
    the built bundle, and the dead entitlements are gone — `aps-environment`,
    `healthkit.background-delivery`, `icloud-container-identifiers`, `icloud-services`.
    `com.apple.developer.healthkit` was deliberately kept; see the row below.
-2. **1.11** (`WematchShared` → local Swift package) and **1.8** (re-scope: the CloudKit
-   layer D4 was written against is gone) are what is left of Phase 1. 1.11 needs Xcode
-   target surgery; the duplicated `WatchMessage`, `WatchDashboardSnapshot` and
-   `WatchHeartRateStatus` are three more files it deletes.
+2. **1.8** is what is left of Phase 1, and it needs re-scoping before it needs doing: D4
+   was written against a CloudKit layer that 1.2 removed.
 
 ## Found in passing, not in the plan
 
@@ -179,4 +211,9 @@ a snapshot. An unwritten finding is one that gets re-discovered.
 ## Blocked on Rémy
 
 - Anything on real hardware: the device pass, the field session, TestFlight upload.
-- Xcode target surgery (1.11), done in the GUI.
+
+The plan's rule that Xcode target surgery must be done in the GUI (Risks section) no longer
+applies to 1.11 — it was done by editing the project file directly, in two halves: the
+package wired in first while `WematchShared` still stood, so every structural edit was
+additive and provable by a build, and the deletion only afterwards. Both targets build
+Debug and Release, and `xcodebuild -list` shows the three remaining targets.

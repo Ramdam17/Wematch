@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct InboxMessageRowView: View {
     let message: InboxMessage

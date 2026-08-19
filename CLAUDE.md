@@ -8,8 +8,12 @@ First audience: Rémy's colleagues.
 **Stack:** Swift 6, SwiftUI only, `@Observable` + `@MainActor`, async/await (no Combine,
 no ObservableObject). Firebase RTDB (ephemeral real-time HR), CloudKit (persistent social
 graph), HealthKit (Watch HR source), WatchConnectivity.
-**Targets:** `Wematch` (iPhone), `WematchWatch Watch App`, `WematchShared` (empty — slated
-for replacement by a local Swift package, see plan step 1.11).
+**Targets:** `Wematch` (iPhone), `WematchWatch Watch App`, `WematchTests`.
+**Local package:** `Packages/WematchCore` — the value types both apps must agree on
+exactly (the `WatchMessage` wire, `WatchHeartRateStatus`, `WatchDashboardSnapshot`, the
+heart palette, the plot's coordinate system, the Bezier math). It replaced the empty
+`WematchShared` framework at plan step 1.11. Anything shared goes there, not into a
+second copy; it is `nonisolated` throughout, unlike the apps.
 
 ## Current State
 
@@ -102,6 +106,7 @@ Wematch/
 │   └── X/               # Views / ViewModels / Models / Repositories
 └── Shared/              # Models, Extensions (String+FirebaseSafe), Utilities (Logger)
 WematchWatch Watch App/  # Passive display: iPhone computes, Watch renders (keep it that way)
+Packages/WematchCore/    # Local Swift package: types both apps share (plan 1.11)
 WematchTests/            # Unit tests (target wiring: plan 0.5)
 ```
 

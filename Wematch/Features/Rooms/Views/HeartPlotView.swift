@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct HeartPlotView: View {
     let participants: [RoomParticipant]

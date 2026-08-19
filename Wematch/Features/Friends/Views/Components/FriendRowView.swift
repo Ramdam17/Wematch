@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct FriendRowView: View {
     let profile: UserProfile

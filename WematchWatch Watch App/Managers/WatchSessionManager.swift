@@ -1,6 +1,7 @@
 import Synchronization
 import WatchConnectivity
 import os
+import WematchCore
 
 /// The Watch's end of the WatchConnectivity link.
 ///

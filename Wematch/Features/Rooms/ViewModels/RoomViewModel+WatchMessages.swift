@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import WematchCore
 
 /// The phone's ear and mouth on the Watch. Split from `RoomViewModel.swift` to keep
 /// that file under the length limit, the same way the dashboard recording is.

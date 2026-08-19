@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 /// The user's sync history.
 ///

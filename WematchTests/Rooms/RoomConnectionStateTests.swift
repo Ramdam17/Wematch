@@ -1,4 +1,5 @@
 import XCTest
+import WematchCore
 @testable import Wematch
 
 /// Plan 1.7 (audit D1–D3). Three independent things can go wrong in a room, and until

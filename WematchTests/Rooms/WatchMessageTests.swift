@@ -1,4 +1,5 @@
 import XCTest
+import WematchCore
 @testable import Wematch
 
 /// The phone↔Watch wire (plan 1.10, H2).

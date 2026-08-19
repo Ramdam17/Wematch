@@ -1,4 +1,5 @@
 import XCTest
+import WematchCore
 @testable import Wematch
 
 /// Pins the palette-slot mapping.

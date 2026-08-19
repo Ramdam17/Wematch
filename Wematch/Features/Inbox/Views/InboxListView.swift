@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct InboxListView: View {
     @Environment(AuthenticationManager.self) private var authManager

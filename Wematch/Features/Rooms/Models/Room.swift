@@ -1,5 +1,6 @@
 import Foundation
 import os
+import WematchCore
 
 struct Room: Identifiable, Sendable {
     let id: String

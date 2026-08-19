@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import WematchCore
 
 nonisolated final class FirebaseRoomRepository: RoomRepository, Sendable {
 

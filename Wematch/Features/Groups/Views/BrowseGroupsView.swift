@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct BrowseGroupsView: View {
     let authManager: AuthenticationManager

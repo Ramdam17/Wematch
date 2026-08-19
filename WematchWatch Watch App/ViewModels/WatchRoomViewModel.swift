@@ -1,5 +1,6 @@
 import Foundation
 import os
+import WematchCore
 
 @Observable
 @MainActor

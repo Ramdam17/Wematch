@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct WatchRoomView: View {
     let viewModel: WatchRoomViewModel

@@ -1,4 +1,5 @@
 import Foundation
+import WematchCore
 
 /// The one thing the room tells the user about its own health (plan 1.7, audit D1–D3).
 ///

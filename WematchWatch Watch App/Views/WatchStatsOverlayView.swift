@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct WatchStatsOverlayView: View {
     let heartRate: Double

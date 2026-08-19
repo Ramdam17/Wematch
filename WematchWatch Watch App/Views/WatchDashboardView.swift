@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 /// "Together" — four lifetime numbers, computed on the iPhone and pushed over.
 ///
@@ -73,7 +74,7 @@ struct WatchDashboardView: View {
     /// The partner's own heart colour, resolved from the slot the phone sent rather than
     /// a hex — the same wire discipline as the participants on the plot.
     private var partnerColor: Color {
-        snapshot.bestPartnerSlot.map { WatchHeartPalette.color(slot: $0) } ?? WatchTheme.brandHeart
+        snapshot.bestPartnerSlot.map { HeartPalette.color(slot: $0) } ?? WatchTheme.brandHeart
     }
 
     private var emptyState: some View {

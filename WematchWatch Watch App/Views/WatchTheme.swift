@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 /// The handful of tokens the Watch screens need.
 ///

@@ -1,6 +1,7 @@
 import Foundation
 import Synchronization
 import OSLog
+import WematchCore
 
 /// Generates fake multi-user heart rate data for plot testing in the simulator.
 /// Each virtual participant has independent random-walk HR with mean reversion.

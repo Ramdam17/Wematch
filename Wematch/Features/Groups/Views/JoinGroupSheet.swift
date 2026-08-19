@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct JoinGroupSheet: View {
     @Environment(\.dismiss) private var dismiss

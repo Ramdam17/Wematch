@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import WematchCore
 
 @main
 struct WematchApp: App {

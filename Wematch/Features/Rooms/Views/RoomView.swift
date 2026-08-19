@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct RoomView: View {
     @Environment(\.dismiss) private var dismiss

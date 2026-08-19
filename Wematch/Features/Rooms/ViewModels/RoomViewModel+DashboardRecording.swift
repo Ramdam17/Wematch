@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import WematchCore
 
 /// Everything the room does *for the dashboard*, kept out of `RoomViewModel` proper.
 ///

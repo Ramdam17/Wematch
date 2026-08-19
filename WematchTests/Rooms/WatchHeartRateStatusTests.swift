@@ -1,4 +1,5 @@
 import XCTest
+import WematchCore
 @testable import Wematch
 
 /// A denied heart-rate read is invisible through HealthKit: `requestAuthorization`

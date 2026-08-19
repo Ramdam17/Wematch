@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 /// Draws a circle/ellipse around a cluster of synced hearts on the plot.
 struct ClusterCircleView: View {

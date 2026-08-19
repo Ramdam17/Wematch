@@ -13,9 +13,7 @@ import Foundation
 /// Silence is the only thing observable, so the app names it instead of
 /// rendering an empty plot that looks like a working room.
 ///
-/// Duplicated in the iPhone target until `WematchShared` becomes a real package
-/// (plan 1.11) — same pattern as `WatchDashboardSnapshot`.
-nonisolated enum WatchHeartRateStatus: String, Codable, Equatable, Sendable, CaseIterable {
+public enum WatchHeartRateStatus: String, Codable, Equatable, Sendable, CaseIterable {
 
     /// No room, no workout — nothing is expected.
     case idle
@@ -43,18 +41,18 @@ nonisolated enum WatchHeartRateStatus: String, Codable, Equatable, Sendable, Cas
     /// right after `beginCollection` is the slow case. Case S2 of
     /// `Docs/field-tests/session-script.md` is where this number gets replaced by
     /// a measurement.
-    static let firstSampleTimeout: Duration = .seconds(20)
+    public static let firstSampleTimeout: Duration = .seconds(20)
 
     /// True when the user should be told something, rather than left looking at
     /// a plot that is empty for reasons the app is hiding.
-    var needsAttention: Bool {
+    public var needsAttention: Bool {
         self == .silent || self == .stopped
     }
 
     /// Shown **on the Watch**, where the user can actually fix it: it names the most
     /// likely cause and where to go. Long on purpose — the Watch screen has nothing
     /// else on it at that moment.
-    var watchExplanation: String? {
+    public var watchExplanation: String? {
         switch self {
         case .idle, .waitingForFirstSample, .streaming:
             nil
@@ -68,7 +66,7 @@ nonisolated enum WatchHeartRateStatus: String, Codable, Equatable, Sendable, Cas
     /// Shown **on the phone**, in a pill sitting on top of the plot. Same fact, one
     /// sentence: the phone cannot open the Watch's Settings app, so repeating the
     /// instruction there costs three lines of the plot and buys nothing.
-    var phoneSummary: String? {
+    public var phoneSummary: String? {
         switch self {
         case .idle, .waitingForFirstSample, .streaming:
             nil

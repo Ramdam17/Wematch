@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 
 struct WatchPlotGridView: View {
     let insets: EdgeInsets
@@ -25,7 +26,7 @@ struct WatchPlotGridView: View {
         let lineColor = Color.white.opacity(0.1)
 
         for bpm in bpmSteps {
-            let norm = WatchPlotCoordinates.normalize(Double(bpm))
+            let norm = PlotCoordinates.normalize(Double(bpm))
 
             let x = plotRect.minX + norm * plotRect.width
             var vPath = Path()
@@ -60,7 +61,7 @@ struct WatchPlotGridView: View {
         let labelSteps = [40, 120, 200]
 
         for bpm in labelSteps {
-            let norm = WatchPlotCoordinates.normalize(Double(bpm))
+            let norm = PlotCoordinates.normalize(Double(bpm))
             let text = Text("\(bpm)").font(font).foregroundStyle(labelColor)
 
             // X axis label (below)

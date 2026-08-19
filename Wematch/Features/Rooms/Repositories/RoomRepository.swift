@@ -1,4 +1,5 @@
 import Foundation
+import WematchCore
 
 protocol RoomRepository: Sendable {
     func joinRoom(roomID: String, participant: RoomParticipant) async throws

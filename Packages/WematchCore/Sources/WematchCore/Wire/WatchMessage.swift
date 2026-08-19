@@ -9,10 +9,10 @@ import Foundation
 /// arrive finite, and makes a payload that does not fit a thrown error rather than a
 /// heart rate of 0 BPM on someone's plot.
 ///
-/// Duplicated in the Watch target rather than shared: `WematchShared` is iOS-only until
-/// plan 1.11 turns it into a real package. Same standing arrangement as
-/// `WatchDashboardSnapshot` and `WatchHeartRateStatus` — **change both copies together.**
-nonisolated enum WatchMessage: Codable, Sendable, Equatable {
+/// One declaration, read by both devices. It was written duplicated, because
+/// `WematchShared` was an iOS-only framework that could not carry it; plan 1.11 made the
+/// package real and this is the copy that survived.
+public enum WatchMessage: Codable, Sendable, Equatable {
 
     /// The phone came to the foreground. Wakes the Watch app; carries nothing.
     case appLaunched
@@ -39,28 +39,49 @@ nonisolated enum WatchMessage: Codable, Sendable, Equatable {
 
     /// The plot, already computed. The Watch is a passive display: it receives positions
     /// and counts, never the participants' identities or the graph they came from.
-    struct RoomUpdate: Codable, Sendable, Equatable {
+    public struct RoomUpdate: Codable, Sendable, Equatable {
 
         /// A heart on the plot. The palette *slot* travels, never a colour — each side
         /// resolves the hue for its own appearance (see `HeartPaletteSlot`).
-        struct Participant: Codable, Sendable, Equatable {
-            let id: String
-            let currentHR: Double
-            let previousHR: Double
-            let colorSlot: Int
+        public struct Participant: Codable, Sendable, Equatable {
+            public let id: String
+            public let currentHR: Double
+            public let previousHR: Double
+            public let colorSlot: Int
+
+            public init(id: String, currentHR: Double, previousHR: Double, colorSlot: Int) {
+                self.id = id
+                self.currentHR = currentHR
+                self.previousHR = previousHR
+                self.colorSlot = colorSlot
+            }
         }
 
-        let participants: [Participant]
-        let currentUserID: String
-        let maxChain: Int
-        let syncedCount: Int
-        let newSyncFormations: Bool
+        public let participants: [Participant]
+        public let currentUserID: String
+        public let maxChain: Int
+        public let syncedCount: Int
+        public let newSyncFormations: Bool
+
+        public init(
+            participants: [Participant],
+            currentUserID: String,
+            maxChain: Int,
+            syncedCount: Int,
+            newSyncFormations: Bool
+        ) {
+            self.participants = participants
+            self.currentUserID = currentUserID
+            self.maxChain = maxChain
+            self.syncedCount = syncedCount
+            self.newSyncFormations = newSyncFormations
+        }
     }
 
     /// A name safe to log. `String(describing:)` on this enum would put a heart rate in
     /// cleartext the day someone logs the wrong case — health data never goes to the
     /// console (audit B5), so the payloads simply have no textual form.
-    var logLabel: String {
+    public var logLabel: String {
         switch self {
         case .appLaunched: "appLaunched"
         case .enterRoom: "enterRoom"
@@ -83,16 +104,16 @@ nonisolated enum WatchMessage: Codable, Sendable, Equatable {
     /// Bumped when a case's payload changes shape. Nothing has ever been distributed —
     /// not even to TestFlight — so version 1 is the first and only format in existence,
     /// and no build predating it can be running anywhere.
-    static let wireVersion = 1
+    public static let wireVersion = 1
 
-    func encoded() throws -> [String: Any] {
+    public func encoded() throws -> [String: Any] {
         [
             Self.versionKey: Self.wireVersion,
             Self.payloadKey: try JSONEncoder().encode(self)
         ]
     }
 
-    static func decoded(from dictionary: [String: Any]) throws -> WatchMessage {
+    public static func decoded(from dictionary: [String: Any]) throws -> WatchMessage {
         guard let payload = dictionary[payloadKey] as? Data else {
             throw WatchMessageError.notAWematchMessage
         }
@@ -113,7 +134,7 @@ nonisolated enum WatchMessage: Codable, Sendable, Equatable {
 /// Why a message could not be read. Named rather than collapsed into `nil` so the two
 /// unrecoverable cases (a peer speaking a newer format, a payload that does not decode)
 /// are distinguishable in a log — the field session is the first time either can happen.
-nonisolated enum WatchMessageError: LocalizedError, Equatable {
+public enum WatchMessageError: LocalizedError, Equatable {
 
     /// The dictionary did not come from Wematch's own encoder.
     case notAWematchMessage
@@ -124,7 +145,7 @@ nonisolated enum WatchMessageError: LocalizedError, Equatable {
     /// Right envelope, unreadable contents.
     case malformed(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .notAWematchMessage:
             "Received a message that did not come from Wematch."

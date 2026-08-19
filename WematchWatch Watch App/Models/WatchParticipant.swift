@@ -1,4 +1,5 @@
 import Foundation
+import WematchCore
 
 struct WatchParticipant: Identifiable, Sendable {
     let id: String
@@ -11,7 +12,7 @@ struct WatchParticipant: Identifiable, Sendable {
         self.id = id
         self.currentHR = currentHR
         self.previousHR = previousHR
-        self.colorSlot = WatchHeartPalette.wrap(colorSlot)
+        self.colorSlot = HeartPaletteSlot(index: colorSlot).index
     }
 
     /// From what the iPhone sent (plan 1.10).

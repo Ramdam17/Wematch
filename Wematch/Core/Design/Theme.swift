@@ -1,4 +1,5 @@
 import SwiftUI
+import WematchCore
 import UIKit
 
 /// A fill + foreground colour pair that meets WCAG AA in both colour modes.
@@ -129,36 +130,13 @@ enum WematchTheme {
 
     // MARK: - Heart Palette (20 slots, bimodal)
 
-    /// One palette for both colour modes: the marker's outline, not its fill, carries the
-    /// contrast against the background.
-    ///
-    /// Derived rather than picked by hand. Twenty hues sit on an even 18° grid anchored on
-    /// the brand pink, and each slot's lightness and saturation were searched to maximise
-    /// the minimum CIEDE2000 distance across the whole set. A participant is tracked by
-    /// colour as their heart moves across the plot, so two slots sharing a hue is a
-    /// functional defect, not a cosmetic one — and the original twenty clustered badly
-    /// (four yellows, four greens, four purples) at dE 3.7.
-    ///
-    /// Measured: minimum pairwise distance dE 11.8, past the dE 10 mark where two colours
-    /// read as different at a glance, and 3.29:1 against the Dark Cosmic backgrounds.
-    ///
-    /// Why one palette and not two. Darkening these to clear 3:1 on a near-white
-    /// background was tried and rejected: it forces the yellow and orange slots to olive
-    /// and brown — unavoidable, since yellow carries intrinsically high luminance — and it
-    /// compresses the hue space so hard that separability saturates near dE 7.5 no matter
-    /// how many slots are asked for. Letting `plotMarkerOutline` provide the boundary
-    /// keeps the hues as designed in both modes.
-    nonisolated static let heartColorHexes: [String] = [
-        "D3698D", "FA4249", "EFBBA9",
-        "FAAA42", "D5C66D", "DCFA42",
-        "CFF8A0", "6EFA42", "79D87F",
-        "B0E8C4", "42FABC", "5EF7F2",
-        "42CAFA", "4A94F2", "425BFA",
-        "B9B0E8", "9D6DD5", "E497FC",
-        "FA42EF", "E8B0D4",
-    ]
+    /// The palette itself, its derivation and the measurements behind it now live in
+    /// `WematchCore.HeartPalette`, because the Watch draws the same participants and used
+    /// to carry its own transcription of the same twenty hexes (plan 1.11). These two
+    /// forward so the design system stays the one place a view looks.
+    nonisolated static let heartColorHexes: [String] = HeartPalette.hexes
 
-    nonisolated static let heartColors: [Color] = heartColorHexes.map { Color(hex: $0) }
+    nonisolated static let heartColors: [Color] = HeartPalette.colors
 
     /// The brand heart (`brand/gradient/0`), for hero art and empty states.
     ///

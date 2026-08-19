@@ -1,4 +1,5 @@
 import Foundation
+import WematchCore
 
 /// What can go wrong on the phone→Watch link, named so a caller can react rather than
 /// read a log (plan 1.7, D1).

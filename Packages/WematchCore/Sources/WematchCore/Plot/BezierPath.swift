@@ -1,15 +1,26 @@
 import SwiftUI
 
+// The Watch carried a `Watch`-prefixed copy of everything below, character for character
+// (plan 1.11). Two implementations of the same curve is two ways for the same room to be
+// drawn differently on the two screens looking at it.
+
 // MARK: - Bezier Path
 
-struct BezierPath: Sendable {
-    let from: CGPoint
-    let to: CGPoint
-    let control1: CGPoint
-    let control2: CGPoint
+public struct BezierPath: Sendable {
+    public let from: CGPoint
+    public let to: CGPoint
+    public let control1: CGPoint
+    public let control2: CGPoint
+
+    public init(from: CGPoint, to: CGPoint, control1: CGPoint, control2: CGPoint) {
+        self.from = from
+        self.to = to
+        self.control1 = control1
+        self.control2 = control2
+    }
 
     /// Evaluate position along the cubic Bezier curve at parameter t (0...1).
-    func point(at t: CGFloat) -> CGPoint {
+    public func point(at t: CGFloat) -> CGPoint {
         let t2 = t * t
         let t3 = t2 * t
         let mt = 1 - t
@@ -23,7 +34,7 @@ struct BezierPath: Sendable {
 
     /// Generate a Bezier path with control points offset perpendicular to the movement vector.
     /// `curvature` controls how far control points deviate (0 = straight line, 1 = large arc).
-    static func curved(from: CGPoint, to: CGPoint, curvature: CGFloat = 0.3) -> BezierPath {
+    public static func curved(from: CGPoint, to: CGPoint, curvature: CGFloat = 0.3) -> BezierPath {
         let dx = to.x - from.x
         let dy = to.y - from.y
         let distance = hypot(dx, dy)
@@ -54,53 +65,34 @@ struct BezierPath: Sendable {
 
 // MARK: - Bezier Position Modifier
 
-struct BezierPositionModifier: ViewModifier, Animatable {
+/// `@MainActor` where the rest of the package is `nonisolated`: `ViewModifier.body` is
+/// main-actor isolated. `Animatable` is not, and SwiftUI drives `animatableData` from the
+/// render loop, so the conformance is `@preconcurrency` — the same thing the apps got for
+/// free from their project-wide main-actor default, said out loud here.
+@MainActor
+public struct BezierPositionModifier: ViewModifier, @preconcurrency Animatable {
     var path: BezierPath
     var progress: CGFloat
 
-    var animatableData: CGFloat {
+    init(path: BezierPath, progress: CGFloat) {
+        self.path = path
+        self.progress = progress
+    }
+
+    public var animatableData: CGFloat {
         get { progress }
         set { progress = newValue }
     }
 
-    func body(content: Content) -> some View {
+    public func body(content: Content) -> some View {
         let pos = path.point(at: progress)
         content.position(pos)
     }
 }
 
 extension View {
-    func bezierPosition(path: BezierPath, progress: CGFloat) -> some View {
+    @MainActor
+    public func bezierPosition(path: BezierPath, progress: CGFloat) -> some View {
         modifier(BezierPositionModifier(path: path, progress: progress))
-    }
-}
-
-// MARK: - Plot Coordinate Helpers
-
-enum PlotCoordinates {
-    static let minBPM: Double = 40
-    static let maxBPM: Double = 200
-    static let bpmRange: Double = maxBPM - minBPM
-
-    /// Clamp a BPM value to the plot range.
-    static func clamp(_ bpm: Double) -> Double {
-        min(max(bpm, minBPM), maxBPM)
-    }
-
-    /// Map a BPM value to a normalized 0...1 position.
-    static func normalize(_ bpm: Double) -> CGFloat {
-        CGFloat((clamp(bpm) - minBPM) / bpmRange)
-    }
-
-    /// Convert (previousHR, currentHR) to pixel position in a given plot size.
-    /// X axis = previousHR (left to right), Y axis = currentHR (bottom to top).
-    static func position(previousHR: Double, currentHR: Double, in size: CGSize, insets: EdgeInsets) -> CGPoint {
-        let plotWidth = size.width - insets.leading - insets.trailing
-        let plotHeight = size.height - insets.top - insets.bottom
-
-        let x = insets.leading + normalize(previousHR) * plotWidth
-        let y = insets.top + (1 - normalize(currentHR)) * plotHeight // Flip Y
-
-        return CGPoint(x: x, y: y)
     }
 }

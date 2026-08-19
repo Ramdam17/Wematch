@@ -1,6 +1,7 @@
 import Synchronization
 import WatchConnectivity
 import OSLog
+import WematchCore
 
 /// The phone's end of the WatchConnectivity link.
 ///

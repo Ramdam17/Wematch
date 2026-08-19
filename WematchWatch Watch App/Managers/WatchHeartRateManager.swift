@@ -1,6 +1,7 @@
 import HealthKit
 import Synchronization
 import os
+import WematchCore
 
 /// Owns the workout session that produces heart rate, and hands it out as a stream.
 ///
