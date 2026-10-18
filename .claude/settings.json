@@ -5,5 +5,8 @@
       "Bash(xcrun simctl:*)",
       "Bash(swiftlint:*)"
     ]
+  },
+  "enabledPlugins": {
+    "axiom@axiom-marketplace": true
   }
 }
